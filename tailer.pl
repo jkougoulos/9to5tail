@@ -27,7 +27,7 @@ $SIG{USR1} = \&HandleStats ;
 my $reportevery = 300;
 my $datafile = "/var/log/".$logfile;
 my $filtfile = '/var/log/logfilt.'.$logfile;
-my $vacationsfile = "/var/log/tailer.vacations" ;
+my $vacationsfile = "tailer.vacations" ;
 
 our $report = "";
 our @filters ;
