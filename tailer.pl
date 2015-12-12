@@ -10,7 +10,7 @@ use Data::Dumper ;
 
 use strict;
 
-my $logfile = 'testing'; 
+my $logfile = 'testlog'; 
 
 
 GetOptions ('logfile=s' => \$logfile );
@@ -28,6 +28,7 @@ my $reportevery = 300;
 my $datafile = "/var/log/".$logfile;
 my $filtfile = '/var/log/logfilt.'.$logfile;
 my $vacationsfile = "tailer.vacations" ;
+my $myerrorlog = '/tmp/tailer.pl.log';
 
 our $report = "";
 our @filters ;
@@ -37,6 +38,9 @@ our $fromaddress = 'realtime.report@my.domain.dom';
 our @toaddresses = ( 'recipient@mydomain.dom' ); #, 'recepient2@mydomain.dom' );
 our $vacations ;
 our $vacationsmodtime ;
+
+open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!";
+select MYERROR; $| = 1;
 
 mylog("Initializing, will report every $reportevery seconds\n");
 mylog("Data file is $datafile\n");
@@ -84,7 +88,8 @@ sub mylog
 #        my $msgloglvl = $_[1];
 #        if( $loglvl >= $msgloglvl )
         {
-                print STDERR localtime()." pid:".$$." tailer ".$logfile.": ".$msg.""
+#                print STDERR localtime()." pid:".$$." tailer ".$logfile.": ".$msg.""
+                print MYERROR localtime()." pid:".$$." tailer ".$logfile.": ".$msg.""
         }
 }
 
@@ -186,6 +191,7 @@ sub HandleTermination
 		SendReport();
 	}
 	mylog("Let's die peacefully!\n");
+	close MYERROR or die "Cannot close $myerrorlog: $!";;
 	exit(0);
 }
 
