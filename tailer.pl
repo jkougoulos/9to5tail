@@ -7,15 +7,16 @@ use Getopt::Long;
 use DateTime;
 use DateTime::Event::Easter;
 use Data::Dumper ;
+use YAML::Tiny;
 
 use strict;
 
-my $logfile = 'testlog'; 
+my $config = 'testlog.yml'; 
 
 
-GetOptions ('logfile=s' => \$logfile );
+GetOptions ('config=s' => \$config );
 
-die "no logfile given, use --logfile firewalls|netdevs|.... " if ( $logfile eq '' );
+die "no config file given, use --config testlog.yml... " if ( $config eq '' );
 
 
 $SIG{ALRM} = \&HandleAlarm ;
@@ -23,12 +24,19 @@ $SIG{TERM} = \&HandleTermination ;
 $SIG{INT} = \&HandleTermination ;
 $SIG{USR1} = \&HandleStats ;
 
+my $yaml = YAML::Tiny->read( $config );
+my $conf = $yaml->[0];
 
-my $reportevery = 300;
-my $datafile = "/var/log/".$logfile;
-my $filtfile = '/var/log/logfilt.'.$logfile;
-my $vacationsfile = "tailer.vacations" ;
-my $myerrorlog = '/tmp/tailer.pl.log';
+#print Dumper($yaml); die;
+
+my $logfile = $config;
+$logfile =~ s/\.yml$//;
+
+my $reportevery = $conf->{ 'ReportEverySecs' } ;
+my $datafile = $conf->{ 'DataFile' } ;
+my $myerrorlog = $conf->{ 'TailerLog' };
+my $filtfile = $conf->{ 'FilterFile' };
+my $vacationsfile = $conf->{ 'Vacations' };
 
 our $report = "";
 our @filters ;

@@ -1,0 +1,10 @@
+ReportEverySecs: 3005
+DataFile: /var/log/testlog
+FilterFile: /var/log/logfilt.testlog
+Vacations: tailer.vacations
+TailerLog: /tmp/tailer.pl.log
+FromAddress: realtime.report@domain.dom
+Recipients: 
+	- user1@domain.dom
+	- user2@domain.dom
+
