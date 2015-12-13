@@ -32,7 +32,6 @@ my $conf = $yaml->[0];
 my $logfile = $config;
 $logfile =~ s/\.yml$//;
 
-my $reportevery = $conf->{ 'ReportEverySecs' } ;
 my $datafile = $conf->{ 'DataFile' } ;
 my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
@@ -40,13 +39,12 @@ my $vacationsfile = $conf->{ 'Vacations' };
 my $maxreportbytes = $conf->{ 'MaxReportBytes' };
 
 our $report = "";
+our $reportevery = $conf->{ 'ReportEverySecs' } ;
+our $fromaddress = $conf->{ 'FromAddress' };
+our @toaddresses = $conf->{ 'Recipients' } ; 
 our @filters ;
 our $filtmodtime ;
 our $filterstats ;
-#our $fromaddress = 'realtime.report@my.domain.dom';
-our $fromaddress = $conf->{ 'FromAddress' };
-#our @toaddresses = ( 'recipient@mydomain.dom' ); #, 'recepient2@mydomain.dom' );
-our @toaddresses = $conf->{ 'Recipients' } ; #, 'recepient2@mydomain.dom' );
 our $vacations ;
 our $vacationsmodtime ;
 
@@ -109,7 +107,17 @@ sub mylog
 sub SendReport
 {
 	my $timessent = 0 ;
+	my $subject = "";
         my $now = DateTime->now->set_time_zone( 'local' ) ;
+	if ( length( $report ) > $maxreportbytes )
+	{
+		$report = substr( $report, 0, $maxreportbytes );
+		$subject = $logfile.' Realtime syslog report TRUNCATED, Check logs!';
+	}
+	else
+	{
+		$subject = $logfile.' Realtime syslog report ' ;
+	}
 	foreach my $recipient ( @toaddresses )
 	{
 		if ( !(defined $vacations->{ $recipient.":".$now->year().":".$now->month().":".$now->day() } ) && isNowWorkTime() )
@@ -118,12 +126,12 @@ sub SendReport
 		       		From     => $fromaddress,
 		        	To       => $recipient,
 #		        	Cc       => 'some@other.com, some@more.com',
-		        	Subject  => $logfile.' Realtime syslog report!',
+		        	Subject  => $subject,
 		        	Data     => $report
 			);
 			$msg->send;
 			$timessent++;
-			mylog("Just sent an email!");
+			mylog("Just sent an email!\n");
 		}
 		else
 		{
