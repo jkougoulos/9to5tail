@@ -37,13 +37,16 @@ my $datafile = $conf->{ 'DataFile' } ;
 my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
 my $vacationsfile = $conf->{ 'Vacations' };
+my $maxreportbytes = $conf->{ 'MaxReportBytes' };
 
 our $report = "";
 our @filters ;
 our $filtmodtime ;
 our $filterstats ;
-our $fromaddress = 'realtime.report@my.domain.dom';
-our @toaddresses = ( 'recipient@mydomain.dom' ); #, 'recepient2@mydomain.dom' );
+#our $fromaddress = 'realtime.report@my.domain.dom';
+our $fromaddress = $conf->{ 'FromAddress' };
+#our @toaddresses = ( 'recipient@mydomain.dom' ); #, 'recepient2@mydomain.dom' );
+our @toaddresses = $conf->{ 'Recipients' } ; #, 'recepient2@mydomain.dom' );
 our $vacations ;
 our $vacationsmodtime ;
 
@@ -53,6 +56,7 @@ select MYERROR; $| = 1;
 mylog("Initializing, will report every $reportevery seconds\n");
 mylog("Data file is $datafile\n");
 mylog("Filter file is $filtfile\n");
+mylog("Max report is $maxreportbytes bytes \n");
 
 mylog("Initializing Filters\n");
 my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
@@ -63,6 +67,7 @@ LoadFilters();
 mylog("Initializing Vacations\n");
 my $vacstatdata = stat( $vacationsfile ) or die "$vacationsfile does not exist" ;
 $vacationsmodtime = $vacstatdata->mtime ;
+mylog("Vacations file is: ".$vacationsfile."\n") ;
 mylog("Vacations file mtime is: ".$vacationsmodtime."\n") ;
 LoadVacations();
 
@@ -79,12 +84,12 @@ while (defined(my $line = $file->read)) {
 #		print STDERR "TESTING #$filter#..." ;
 		if ( $line =~ /$filter/ )
 		{	
-#			print STDERR "Hit!\n" ;
+			mylog("Got a Hit in filters!\n") ;
 			$filterstats->{$filter} += 1;
 			$skip = 1;
 			last;
 		}
-#		print "Miss\n";
+		mylog("Got a Miss... but we added something in the report\n");
 	}
 	next if ( $skip );
 	$report .=  $line;
@@ -107,7 +112,7 @@ sub SendReport
         my $now = DateTime->now->set_time_zone( 'local' ) ;
 	foreach my $recipient ( @toaddresses )
 	{
-		if ( !(defined $vacations->{ $recipient.":".$now->year().":".$now->month().":".$now->day() } ) )
+		if ( !(defined $vacations->{ $recipient.":".$now->year().":".$now->month().":".$now->day() } ) && isNowWorkTime() )
 		{
 			my $msg = MIME::Lite->new(
 		       		From     => $fromaddress,
@@ -118,10 +123,11 @@ sub SendReport
 			);
 			$msg->send;
 			$timessent++;
+			mylog("Just sent an email!");
 		}
 		else
 		{
-#			mylog( $recipient." is on vacation... lets not spam!\n" );
+			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
 		}
 	}
 #			print "Here is the report!\n".$report ;
@@ -137,15 +143,15 @@ sub HandleAlarm
 #	mylog("Got Alarm!\n") ;
 	if ( $report ne "" )
 	{
-#		mylog("Got something to report!\n");
-		if ( isNowWorkTime() )
-		{
+		mylog("Got something to report!\n");
+#		if ( isNowWorkTime() )
+#		{
 			SendReport();
-		}
-		else
-		{
+#		}
+#		else
+#		{
 #			mylog("Something to report but time is not appropriate... skipping\n") ;
-		}
+#		}
 	}
 	else
 	{	
@@ -244,6 +250,9 @@ sub LoadVacations
 
 sub isNowWorkTime
 {
+### for testing during weekends coding
+return 1;
+### for testing during weekends coding
 
         my $now = DateTime->now->set_time_zone( 'local' ) ;
 #       my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );

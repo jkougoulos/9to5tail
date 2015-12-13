@@ -1,4 +1,5 @@
 ReportEverySecs: 3005
+MaxReportBytes: 256000
 DataFile: /var/log/testlog
 FilterFile: /var/log/logfilt.testlog
 Vacations: tailer.vacations
