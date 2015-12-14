@@ -82,12 +82,12 @@ while (defined(my $line = $file->read)) {
 #		print STDERR "TESTING #$filter#..." ;
 		if ( $line =~ /$filter/ )
 		{	
-			mylog("Got a Hit in filters!\n") ;
+#			mylog("Got a Hit in filters!\n") ;
 			$filterstats->{$filter} += 1;
 			$skip = 1;
 			last;
 		}
-		mylog("Got a Miss... but we added something in the report\n");
+#		mylog("Got a Miss... but we added something in the report\n");
 	}
 	next if ( $skip );
 	$report .=  $line;
@@ -259,7 +259,7 @@ sub LoadVacations
 sub isNowWorkTime
 {
 ### for testing during weekends coding
-return 1;
+#return 1;
 ### for testing during weekends coding
 
         my $now = DateTime->now->set_time_zone( 'local' ) ;
