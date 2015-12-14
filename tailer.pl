@@ -48,6 +48,7 @@ our $filterstats ;
 our $vacations ;
 our $vacationsmodtime ;
 our $mailssent = 0 ;
+our $msgstomail = 0;
 
 open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!";
 select MYERROR; $| = 1;
@@ -92,6 +93,7 @@ while (defined(my $line = $file->read)) {
 	}
 	next if ( $skip );
 	$report .=  $line;
+	$msgstomail++;
 }
 
 sub mylog
@@ -144,6 +146,7 @@ sub SendReport
 	if ( $timessent > 0 )   # keep the report if everyone is on vacation... but we will not send a report even if we are dying...
 	{
 		$report = "";
+		$msgstomail = 0;
 	}
 }
 
@@ -203,6 +206,7 @@ sub HandleStats
 		$k++;
 	}
 	mylog( "Sent $mailssent emails\n");
+	mylog( "We have $msgstomail messages in buffer to be sent!\n" );
 	mylog( "End of dump!\n" );
 }
 
