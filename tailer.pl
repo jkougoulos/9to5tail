@@ -47,6 +47,7 @@ our $filtmodtime ;
 our $filterstats ;
 our $vacations ;
 our $vacationsmodtime ;
+our $mailssent = 0 ;
 
 open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!";
 select MYERROR; $| = 1;
@@ -131,11 +132,12 @@ sub SendReport
 			);
 			$msg->send;
 			$timessent++;
-			mylog("Just sent an email!\n");
+			$mailssent++;
+#			mylog("Just sent an email!\n");
 		}
 		else
 		{
-			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
+#			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
 		}
 	}
 #			print "Here is the report!\n".$report ;
@@ -151,7 +153,7 @@ sub HandleAlarm
 #	mylog("Got Alarm!\n") ;
 	if ( $report ne "" )
 	{
-		mylog("Got something to report!\n");
+#		mylog("Got something to report!\n");
 #		if ( isNowWorkTime() )
 #		{
 			SendReport();
@@ -200,6 +202,7 @@ sub HandleStats
 		mylog( "Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> currently in pos:$i rank here:$k\n" );
 		$k++;
 	}
+	mylog( "Sent $mailssent emails\n");
 	mylog( "End of dump!\n" );
 }
 
