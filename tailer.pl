@@ -123,7 +123,8 @@ sub SendReport
 	}
 	foreach my $recipient ( @toaddresses )
 	{
-		if ( !(defined $vacations->{ $recipient.":".$now->year().":".$now->month().":".$now->day() } ) && isNowWorkTime() )
+		my $vachashref =  $recipient.":".$now->year().":".$now->month().":".$now->day() ;
+		if ( !(defined $vacations->{ $vachashref } ) && isNowWorkTime() )
 		{
 			my $msg = MIME::Lite->new(
 		       		From     => $fromaddress,
