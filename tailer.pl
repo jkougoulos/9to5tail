@@ -11,7 +11,7 @@ use YAML::Tiny;
 
 use strict;
 
-my $config = 'testlog.yml'; 
+my $config = ''; 
 
 
 GetOptions ('config=s' => \$config );
@@ -102,7 +102,6 @@ sub mylog
 #        my $msgloglvl = $_[1];
 #        if( $loglvl >= $msgloglvl )
         {
-#                print STDERR localtime()." pid:".$$." tailer ".$logfile.": ".$msg.""
                 print MYERROR localtime()." pid:".$$." tailer ".$logfile.": ".$msg.""
         }
 }
@@ -143,7 +142,6 @@ sub SendReport
 #			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
 		}
 	}
-#			print "Here is the report!\n".$report ;
 	if ( $timessent > 0 )   # keep the report if everyone is on vacation... but we will not send a report even if we are dying...
 	{
 		$report = "";
@@ -157,15 +155,7 @@ sub HandleAlarm
 #	mylog("Got Alarm!\n") ;
 	if ( $report ne "" )
 	{
-#		mylog("Got something to report!\n");
-#		if ( isNowWorkTime() )
-#		{
-			SendReport();
-#		}
-#		else
-#		{
-#			mylog("Something to report but time is not appropriate... skipping\n") ;
-#		}
+		SendReport();
 	}
 	else
 	{	
@@ -256,11 +246,8 @@ sub LoadVacations
 		my $vacday = int $vacdata[3];
 		my $vacstring = $mail.":".$vacyear.":".$vacmonth.":".$vacday ;
 		$vacations->{ $vacstring } = "Resting" ;
-	#	mylog("Added vacation data: $vacstring\n") ;
 	}
 	close FH or die "Cannot close $vacationsfile: $!"; 
-#	mylog("Vacations now ARE:\n");
-#	print STDERR Dumper( $vacations );
 }
 
 
@@ -271,7 +258,7 @@ sub isNowWorkTime
 ### for testing during weekends coding
 
         my $now = DateTime->now->set_time_zone( 'local' ) ;
-#       my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
+# testing #      my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
 
         return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 ); # sat sun
         return 0 if ( ( $now->hour() < 9) || ( ( $now->hour() >= 18) && ( $now->min() >= 30) ) || ( $now->hour() >= 18 ) ); # non work hours
@@ -298,7 +285,7 @@ sub isNowWorkTime
         return 0 if ( $rosenmontag->is( $now ) );
         return 0 if ( $whit_monday->is( $now ) );
         return 0 if ( $ascension->is( $now ) );
-        return 0 if ( $after_ascension->is( $now ) );
+#        return 0 if ( $after_ascension->is( $now ) );
         return 0 if ( $corpus_christi->is( $now ) );
 
         return 1;
