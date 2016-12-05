@@ -1,6 +1,8 @@
 # 9to5tail
 
-A perl based script that will tail -f your log, ignore the silly things specified using regex in FilterFile (like running egrep -v -f DataFile) and send you an mail every ReportEverySecs with the important stuff during working hours.
+A simple perl based script that will tail -f your log, ignore the silly things specified using regex in FilterFile (like running egrep -v -f Filterfile DataFile) and will send you an mail every ReportEverySecs with the important stuff during working hours.
+
+Configuration is specified in yml format (see testlog.yml). You may specify multiple recipients, one log file and one filter file per instance.
 
 Non working time is defined in "isNowWorkTime", return 0 for non working time. Adjust as needed.
 
@@ -21,8 +23,8 @@ email, year, month, day
 Thanks to File::Tail, you don't have to restart when the log file is rotated
 
 kill -SIGUSR1  will dump in the script's log file (TailerLog) the counters for ignored lines, allowing you to optimize the order of the filters and gain some speed.
-kill -SIGTERM will gracefully terminate the process, sending any pending reports.more 
 
+kill -SIGTERM will gracefully terminate the process, sending any pending reports.
 
 MaxReportBytes defines the maximum size of the report mail. Report will be truncated to get an idea of what is happening but you will have to dig in the logs to see what is the problem.
 
