@@ -41,7 +41,7 @@ my $maxreportbytes = $conf->{ 'MaxReportBytes' };
 our $report = "";
 our $reportevery = $conf->{ 'ReportEverySecs' } ;
 our $fromaddress = $conf->{ 'FromAddress' };
-our @toaddresses = $conf->{ 'Recipients' } ; 
+our @toaddresses = @{ $conf->{ 'Recipients' } } ; 
 our @filters ;
 our $filtmodtime ;
 our $filterstats ;
