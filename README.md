@@ -24,7 +24,7 @@ kill -SIGUSR1  will dump in the script's log file (TailerLog) the counters for i
 kill -SIGTERM will gracefully terminate the process, sending any pending reports.more 
 
 
-MaxReportBytes defines the maximum size of the report mail. Report will be truncated to get an idea of what is happening but you will have to dig manually the logs.
+MaxReportBytes defines the maximum size of the report mail. Report will be truncated to get an idea of what is happening but you will have to dig in the logs to see what is the problem.
 
 The FilterFile and Vacations file are checked for changes every ReportEverySecs in order to update the filters and vacations without restarting the script.
 
