@@ -2,7 +2,7 @@
 
 A perl based script that will tail -f your log, ignore the silly things specified using regex in FilterFile (like running egrep -v -f DataFile) and send you an mail every ReportEverySecs with the important stuff during working hours.
 
-Work time is defined in "isNowWorkTime". Adjust as needed.
+Non working time is defined in "isNowWorkTime", return 0 for non working time. Adjust as needed.
 
 eg #1:
 
@@ -13,9 +13,9 @@ defines that mails will not be sent between 18:30 - 09:00
 eg #2
 return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 );
 
-defines that mails will not be sent during weekends
+defines that emails will not be sent during weekends
 
-in Vacations file you can specify the vacation days of the recipients so that they don't get spammed while relaxing, in the format :
+in Vacations file you may specify the vacation days of the recipients so that they don't get spammed while relaxing, in the format :
 email, year, month, day
 
 Thanks to File::Tail, you don't have to restart when the log file is rotated
