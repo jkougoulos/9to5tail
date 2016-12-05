@@ -11,7 +11,7 @@ use YAML::Tiny;
 
 use strict;
 
-my $config = ''; 
+my $config = '';
 
 
 GetOptions ('config=s' => \$config );
@@ -183,7 +183,7 @@ sub HandleStats
 {
 	mylog( "Caught SIGUSR1... Dumping filtered messages stats \n" );
 	my @keys = sort { $filterstats->{$b} <=> $filterstats->{$a} } keys %{$filterstats}; # sort by hash value
-	#foreach my $filtspec ( keys %{$filterstats} )
+	
 	my $k = 1;
 	foreach my $filtspec ( @keys )
 	{
@@ -253,9 +253,9 @@ sub LoadVacations
 
 sub isNowWorkTime
 {
-### for testing during weekends coding
+### for 24x7 people
 #return 1;
-### for testing during weekends coding
+### for 24x7 people
 
         my $now = DateTime->now->set_time_zone( 'local' ) ;
 # testing #      my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
