@@ -261,7 +261,7 @@ sub isNowWorkTime
 # testing #      my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
 
         return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 ); # sat sun
-        return 0 if ( ( $now->hour() < 9) || ( ( $now->hour() >= 18) && ( $now->min() >= 30) ) || ( $now->hour() >= 18 ) ); # non work hours
+        return 0 if ( ( $now->hour() < 9) || ( $now->hour() > 18 ) || ( ( $now->hour() == 18) && ( $now->min() >= 30) ) ); # non work hours
 
         return 0 if ( $now->mon() == 5 && $now->day() == 1 ); # labour day
         return 0 if ( $now->mon() == 5 && $now->day() == 9 ); # Schuman day
