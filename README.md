@@ -2,7 +2,9 @@
 A perl based script that will tail -f your log, ignore the silly things specified using regex in FilterFile (like running egrep -v -f DataFile) and send you an mail every ReportEverySecs with the important stuff during working hours.
 
 Work time is defined in "isNowWorkTime". Adjust as needed.
+
 eg #1:
+
 return 0 if ( ( $now->hour() < 9) || ( ( $now->hour() >= 18) && ( $now->min() >= 30) ) || ( $now->hour() >= 18 ) ); 
 
 defines that mails will not be sent between 18:30 - 09:00
