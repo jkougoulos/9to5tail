@@ -20,6 +20,7 @@ die "no config file given, use --config testlog.yml... " if ( $config eq '' );
 
 
 $SIG{ALRM} = \&HandleAlarm ;
+$SIG{HUP} = \&HandleAlarm ;
 $SIG{TERM} = \&HandleTermination ;
 $SIG{INT} = \&HandleTermination ;
 $SIG{USR1} = \&HandleStats ;
@@ -110,7 +111,6 @@ sub SendReport
 {
 	my $timessent = 0 ;
 	my $subject = "";
-        my $now = DateTime->now->set_time_zone( 'local' ) ;
 	if ( length( $report ) > $maxreportbytes )
 	{
 		$report = substr( $report, 0, $maxreportbytes );
@@ -122,8 +122,9 @@ sub SendReport
 	}
 	foreach my $recipient ( @toaddresses )
 	{
-		my $vachashref =  $recipient.":".$now->year().":".$now->month().":".$now->day() ;
-		if ( !(defined $vacations->{ $vachashref } ) && isNowWorkTime() )
+
+#		if ( !(defined $vacations->{ $vachashref } ) && isNowWorkTime() )
+		if ( isNowWorkTime( $recipient ) ) 
 		{
 			my $msg = MIME::Lite->new(
 		       		From     => $fromaddress,
@@ -139,7 +140,7 @@ sub SendReport
 		}
 		else
 		{
-#			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
+			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
 		}
 	}
 	if ( $timessent > 0 )   # keep the report if everyone is on vacation... but we will not send a report even if we are dying...
@@ -152,6 +153,7 @@ sub SendReport
 
 sub HandleAlarm
 {
+	alarm 0;
 #	mylog("Got Alarm!\n") ;
 	if ( $report ne "" )
 	{
@@ -256,8 +258,15 @@ sub isNowWorkTime
 ### for 24x7 people
 #return 1;
 ### for 24x7 people
+	my $recipient = $_[0];
+
 
         my $now = DateTime->now->set_time_zone( 'local' ) ;
+	my $vachashref =  $recipient.":".$now->year().":".$now->month().":".$now->day() ;
+
+	mylog( "recipient is $recipient, vachashref is $vachashref\n" );
+
+	return 0 if ( defined $vacations->{ $vachashref } ) ;
 # testing #      my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
 
         return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 ); # sat sun
