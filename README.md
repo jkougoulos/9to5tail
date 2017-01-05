@@ -1,5 +1,7 @@
 # 9to5tail
 
+###please use tag v0.1, master unstable
+
 A simple perl based script that will spam you with logs. It will actually tail -f your log, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an mail every ReportEverySecs with the important stuff during working hours.
 
 Configuration is specified in yaml format (see testlog.yml). You may specify multiple recipients, one log file and one filter file per instance.
