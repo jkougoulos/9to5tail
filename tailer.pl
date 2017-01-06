@@ -86,7 +86,7 @@ if( $eastersupport )
 }
 else
 {
-	mylog("Easter support not available, check your vacation file");
+	mylog("Easter support not available, check your vacation file\n");
 }
 
 alarm $reportevery;
@@ -118,7 +118,7 @@ while (defined(my $line = $file->read)) {
 			{
 				my $dynval = "$1:$2:$3:$4:$5:$6" ;
 				$dynval =~ s/:+$//g ;
-				mylog("RATE for <<$regex>> value is #$dynval#\n");
+#				mylog("RATE for <<$regex>> value is #$dynval#\n");
 				my $key = $i.'+'.$dynval ;
 				if ( defined $rates->{ $key } )
 				{
@@ -296,7 +296,7 @@ sub LoadFilters
 		
 		chomp;
 		my $filterline = $_ ;
-		if( $filterline =~ /^I:(.*)$/ )
+		if( $filterline =~ /^I:(.*)$/i )
 		{
 			$filter->{ 'action' } = 'IGNORE' ;
 			$filter->{ 'regex' } = $1 ;
@@ -304,7 +304,7 @@ sub LoadFilters
 			next;
 		}
 
-		if( $filterline =~ /^A:(.*)$/ )
+		if( $filterline =~ /^A:(.*)$/i )
 		{
 			$filter->{ 'action' } = 'ALWAYS' ;
 			$filter->{ 'regex' } = $1 ;
@@ -312,7 +312,7 @@ sub LoadFilters
 			next;
 		}
 
-		if( $filterline =~ /^R,([0-9]+):(.*)$/ )
+		if( $filterline =~ /^R,([0-9]+):(.*)$/i )
 		{
 			$filter->{ 'action' } = 'RATE' ;
 			$filter->{ 'regex' } = $2 ;
@@ -394,7 +394,7 @@ sub isNowWorkTime
 		$nowstr .= "#WE$wesign$wedeltastr#EE$eesign$eedeltastr";
 	}
 
-	mylog( "recipient is $recipient, now is $nowstr\n" );
+#	mylog( "recipient is $recipient, now is $nowstr\n" );
 
 	foreach my $vacation ( @vacations )
 	{
@@ -402,7 +402,7 @@ sub isNowWorkTime
 		{
 			if ( $nowstr =~ /$vacation->{ 'dateregex' }/i )
 			{
-				mylog( "Skipping report to $recipient due to #".$vacation->{ 'comment' }."#\n" );
+#				mylog( "Skipping report to $recipient due to #".$vacation->{ 'comment' }."#\n" );
 				return 0;
 			}
 		}
