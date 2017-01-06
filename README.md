@@ -42,25 +42,42 @@ I:%MAB-SW1-5-FAIL
 a message will appear on the report only when the log message with the same mac address appears more than 3 times every ReportEverySecs
 
 ##Working time definition
-Non working time is defined in sub "isNowWorkTime", return 0 for non working time. Adjust as needed.
+Non working time is defined in through Vacations file
 
-eg #1:
-
+the format of the  file is the following:
 ```
-return 0 if ( ( $now->hour() < 9) || ( $now->hour() >= 18 ) || ( ( $now->hour() == 18) && ( $now->min() >= 30) ) ); 
-```
-
-defines that mails will not be sent between 18:30 - 09:00
-
-eg #2
-```
-return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 );
+recipientregex,dateregex,comment
 ```
 
-defines that emails will not be sent during weekends
+Every ReportEverySecs, the script will check the defined vacations using the recipient address and a date string. If a match is found, the report is skipped for the specified recipient.
 
-in Vacations file you may specify the vacation days of the recipients so that they don't get spammed while relaxing, in the format :
-email, year, month, day
+The date string is typically something like: 5#20170106#174506#WE-100#EE-100 , where:
+```
+5 -> day of week (1 is Monday, 7 is Sunday) in this case Friday.
+# -> delimiter
+20170106 -> Date of report... January 6th 2017
+# -> delimiter
+174506 -> time of the day... 17:45:06 
+# -> delimiter. Note: this delimiter and the next charaters can be used only if Easter support is activated, meaning DateTime::Event::Easter is installed in your system
+WE -> Wester Easter
+-  -> minus
+100 -> 100 days... aka the date of the report is 100 days before western (eg Catholic) Easter
+# -> delimiter
+EE -> Eastern Easter
+-  -> minus
+100 -> 100 days... aka the date of the report is 100 days before western (eg Orthodox) Easter
+```
+
+by adjusting the date regex you may define when the recipients should NOT receive the reports.
+eg:
+```
+.*,^[67]#,noone will receive on weekends
+.*,^.#........#19,noone will receive between 19:00-19:59
+.*,^.#....010[12],noone will receive on the first days of new year
+.*,#WE-048, noone will receive on Rosen Montag --- 
+.*,#WE\+039, Ascension Day
+foul,^.#20170516, someone whose email contains the text "foul" will not receive on 16th May 2017
+```
 
 ##Miscellaneous
 Thanks to File::Tail, you don't have to restart when the log file is rotated
@@ -75,4 +92,4 @@ MaxReportBytes defines the maximum size of the report mail. Report will be trunc
 
 The FilterFile and Vacations file are checked for changes every ReportEverySecs in order to update the filters and vacations without restarting the script.
 
-Happy log watching!
+Happy log tailing!
