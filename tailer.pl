@@ -175,7 +175,6 @@ sub SendReport
 	my $timessent = 0 ;
 	my $subject = "";
 
-	AddRatesInReport();
 
 	if ( length( $report ) > $maxreportbytes )
 	{
@@ -222,6 +221,7 @@ sub HandleAlarm
 {
 	alarm 0;
 #	mylog("Got Alarm!\n") ;
+	AddRatesInReport();
 	if ( $report ne "" )
 	{
 		SendReport();
@@ -265,6 +265,11 @@ sub HandleStats
 		mylog( "Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> currently in pos:$i rank here:$k\n" );
 		$k++;
 	}
+	foreach my $key ( keys %$rates )
+	{
+		mylog( "RATE key $key has ".$rates->{ $key }." hits\n" );
+	}
+
 	mylog( "Sent $mailssent emails\n");
 	mylog( "We have $msgstomail messages in buffer to be sent!\n" );
 	mylog( "End of dump!\n" );
@@ -277,6 +282,7 @@ sub HandleTermination
 	if ( $report ne "" )
 	{
 		mylog("Sending the final report before terminating!\n");
+		AddRatesInReport();
 		SendReport();
 	}
 	mylog("Let's die peacefully!\n");
