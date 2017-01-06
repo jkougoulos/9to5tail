@@ -16,21 +16,28 @@ A:yyyyyyyyyy
   Always include the yyyyyyyy pattern in report
 
 R,n:zzzzzzzzzz(aaa)zzzzz(bbb)
-  Rate calculation: if the pattern specified after ":" occurs more than "n" times per ReportEverySecs, it will be included on the top of next report
-                    if the pattern captures text using "()", the first 6 captured values will be concatenated to create a key that will be used for micro-rate calculation (hahaha I should work in marketing).
+  Rate calculation: 
+
+if the pattern specified after ":" occurs more than "n" times per ReportEverySecs, it will be included on the top of next report
+
+if the pattern captures text using "()", the first 6 captured values will be concatenated to create a key that will be used for micro-rate calculation (hahaha I should work in marketing).
 
 Actions A & I operate on a first match basis and subsequent matches will be ignored
 Action R will just update counters on match and further matching will continue (for further R actions, I or A).
 
 eg.
 consider the following logs from a switch:
+{{{
 Jan  6 10:44:04 10.4.2.5 979748: Jan  6 10:44:03.405: %MAB-SW1-5-FAIL: Authentication failed for client (ac57.acc9.9813) on Interface Gi117/2/0/39 AuditSessionID 0A30FE01000062523E6FDEC4
 Jan  6 10:44:29 10.4.2.5 979751: Jan  6 10:44:28.031: %MAB-SW1-5-FAIL: Authentication failed for client (00b3.cd28.36a7) on Interface Gi164/2/0/33 AuditSessionID 0A30FE010000642941CF9DEC
 Jan  6 10:44:32 10.4.2.5 979752: Jan  6 10:44:31.111: %MAB-SW1-5-FAIL: Authentication failed for client (00b3.cd28.36a7) on Interface Gi164/2/0/33 AuditSessionID 0A30FE010000642941CF9DEC
+}}}
 
 if the Filter file contains these lines:
+{{{
 R,3:%MAB-SW1-5-FAIL: Authentication failed for client \(([a-f0-9\.]+)\) on Interface
 I:%MAB-SW1-5-FAIL
+}}}
 
 a message will appear on the report only when the log message with the same mac address appears more than 3 times every ReportEverySecs
 
