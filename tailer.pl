@@ -12,11 +12,12 @@ use strict;
 
 my $config = '';
 
-our $eastersupport = 0;
-if ($eastersupport)
-{
-	use DateTime::Event::Easter;
-}
+our $eastersupport = 
+	eval {
+		require DateTime::Event::Easter;
+		DateTime::Event::Easter->import();
+		1;
+	};
 
 GetOptions ('config=s' => \$config );
 
@@ -78,6 +79,16 @@ mylog("Vacations file mtime is: ".$vacationsmodtime."\n") ;
 LoadVacations();
 
 mylog("Let's start...\n") ;
+
+if( $eastersupport )
+{
+	mylog("Easter support activated!\n");
+}
+else
+{
+	mylog("Easter support not available, check your vacation file");
+}
+
 alarm $reportevery;
 
 my $file = File::Tail->new( name => $datafile);
