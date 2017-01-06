@@ -62,7 +62,7 @@ defines that emails will not be sent during weekends
 in Vacations file you may specify the vacation days of the recipients so that they don't get spammed while relaxing, in the format :
 email, year, month, day
 
-##Mischellaneous
+##Miscellaneous
 Thanks to File::Tail, you don't have to restart when the log file is rotated
 
 kill -SIGUSR1  will dump in the script's log file (TailerLog) the counters for ignored lines, allowing you to optimize the order of the filters and gain some speed.
