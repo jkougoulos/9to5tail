@@ -44,6 +44,7 @@ our $reportevery = $conf->{ 'ReportEverySecs' } ;
 our $fromaddress = $conf->{ 'FromAddress' };
 our @toaddresses = @{ $conf->{ 'Recipients' } } ; 
 our @filters ;
+our $rates ;
 our $filtmodtime ;
 our $filterstats ;
 our $vacations ;
@@ -80,15 +81,43 @@ my $file = File::Tail->new( name => $datafile);
 while (defined(my $line = $file->read)) {
 
 	my $skip = 0;
-	foreach my $filter ( @filters )
+
+	foreach my $i (0 .. $#filters )
 	{
+		my $filter = $filters[$i];
+	
+#	foreach my $filter ( @filters )
+#	{
 #		print STDERR "TESTING #$filter#..." ;
-		if ( $line =~ /$filter/ )
+		my $regex = $filter->{ 'regex' };
+		if ( $line =~ /$regex/ )
 		{	
 #			mylog("Got a Hit in filters!\n") ;
-			$filterstats->{$filter} += 1;
-			$skip = 1;
-			last;
+			$filterstats->{$regex} += 1;
+
+			my $action = $filter->{ 'action' };
+			if ( $action eq 'IGNORE' || $action eq 'ALWAYS' )
+			{
+				$skip = 1  if( $action eq 'IGNORE' );
+				last;
+			}
+			if ( $action eq 'RATE' )
+			{
+				my $dynval = "$1:$2:$3:$4:$5:$6" ;
+				$dynval =~ s/:+$//g ;
+				mylog("RATE for <<$regex>> value is #$dynval#\n");
+				my $key = $i.'+'.$dynval ;
+				if ( defined $rates->{ $key } )
+				{
+					$rates->{ $key } += 1;
+				}
+				else
+				{
+					$rates->{ $key } = 1;
+				}
+				$skip = 1;
+#				mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n" );
+			}
 		}
 #		mylog("Got a Miss... but we added something in the report\n");
 	}
@@ -107,10 +136,37 @@ sub mylog
         }
 }
 
+sub AddRatesInReport
+{
+
+	foreach my $rate ( keys %$rates )
+	{
+#		mylog( "checking rate $rate\n" );
+		
+#		$_ = $rate;
+		my ($filterid, $dynval) = $rate =~ /([0-9]+)\+(.*)/ ;
+#		mylog( "filterid: $filterid value: $dynval\n" );
+		my $filter = $filters[$filterid];
+		my $threshold = $filter->{ 'threshold' };
+		my $rateval = $rates->{ $rate } ;
+
+		if ( $rateval > $threshold )
+		{
+			my $regex = $filter->{ 'regex' };
+			my $msg = "RATEMATCH: VAL:$rateval THR:$threshold VALUE:#$dynval# PATTERN:<<$regex>>\n";
+			$report = $msg.$report
+		}
+	}
+}
+
+
 sub SendReport
 {
 	my $timessent = 0 ;
 	my $subject = "";
+
+	AddRatesInReport();
+
 	if ( length( $report ) > $maxreportbytes )
 	{
 		$report = substr( $report, 0, $maxreportbytes );
@@ -148,6 +204,7 @@ sub SendReport
 		$report = "";
 		$msgstomail = 0;
 	}
+	$rates = ();
 }
 
 
@@ -192,7 +249,7 @@ sub HandleStats
 		my $i = 1;
 		foreach my $f ( @filters )
 		{
-			last if ( $f eq $filtspec );
+			last if ( $f->{ 'regex' }  eq $filtspec );
 			$i++;
 		}
 		mylog( "Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> currently in pos:$i rank here:$k\n" );
@@ -225,8 +282,39 @@ sub LoadFilters
 	@filters = ();
 	while ( <FH> )
 	{
+		my $filter = ();
+		
 		chomp;
-		push( @filters, $_ );
+		my $filterline = $_ ;
+		if( $filterline =~ /^I:(.*)$/ )
+		{
+			$filter->{ 'action' } = 'IGNORE' ;
+			$filter->{ 'regex' } = $1 ;
+			push( @filters, $filter );
+#			mylog( "Added $filterline ".Dumper($filter)."\n" );
+			next;
+		}
+
+		if( $filterline =~ /^A:(.*)$/ )
+		{
+			$filter->{ 'action' } = 'ALWAYS' ;
+			$filter->{ 'regex' } = $1 ;
+			push( @filters, $filter );
+#			mylog( "Added $filterline ".Dumper($filter)."\n" );
+			next;
+		}
+
+		if( $filterline =~ /^R,([0-9]+):(.*)$/ )
+		{
+			$filter->{ 'action' } = 'RATE' ;
+			$filter->{ 'regex' } = $2 ;
+			$filter->{ 'threshold' } = $1 ;
+			push( @filters, $filter );
+			mylog( "Added $filterline ".Dumper($filter)."\n" );
+			next;
+		}
+
+		mylog( "Ignoring $filterline \n" );
 	}
 	close FH or die "Cannot close $filtfile: $!"; 
 	mylog("Found ".scalar(@filters)." filters\n");
@@ -270,7 +358,7 @@ sub isNowWorkTime
 # testing #      my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
 
         return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 ); # sat sun
-        return 0 if ( ( $now->hour() < 9) || ( $now->hour() > 18 ) || ( ( $now->hour() == 18) && ( $now->min() >= 30) ) ); # non work hours
+#DEVONLYCOMMENT#        return 0 if ( ( $now->hour() < 9) || ( $now->hour() > 18 ) || ( ( $now->hour() == 18) && ( $now->min() >= 30) ) ); # non work hours
 
         return 0 if ( $now->mon() == 5 && $now->day() == 1 ); # labour day
         return 0 if ( $now->mon() == 5 && $now->day() == 9 ); # Schuman day
