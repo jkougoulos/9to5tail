@@ -5,7 +5,6 @@ use MIME::Lite;
 use File::stat;
 use Getopt::Long;
 use DateTime;
-use DateTime::Event::Easter;
 use Data::Dumper ;
 use YAML::Tiny;
 
@@ -13,6 +12,11 @@ use strict;
 
 my $config = '';
 
+our $eastersupport = 0;
+if ($eastersupport)
+{
+	use DateTime::Event::Easter;
+}
 
 GetOptions ('config=s' => \$config );
 
@@ -47,7 +51,7 @@ our @filters ;
 our $rates ;
 our $filtmodtime ;
 our $filterstats ;
-our $vacations ;
+our @vacations ;
 our $vacationsmodtime ;
 our $mailssent = 0 ;
 our $msgstomail = 0;
@@ -86,8 +90,6 @@ while (defined(my $line = $file->read)) {
 	{
 		my $filter = $filters[$i];
 	
-#	foreach my $filter ( @filters )
-#	{
 #		print STDERR "TESTING #$filter#..." ;
 		my $regex = $filter->{ 'regex' };
 		if ( $line =~ /$regex/ )
@@ -139,13 +141,10 @@ sub mylog
 sub AddRatesInReport
 {
 
+        my $now = DateTime->now->set_time_zone( 'local' ) ;
 	foreach my $rate ( keys %$rates )
 	{
-#		mylog( "checking rate $rate\n" );
-		
-#		$_ = $rate;
 		my ($filterid, $dynval) = $rate =~ /([0-9]+)\+(.*)/ ;
-#		mylog( "filterid: $filterid value: $dynval\n" );
 		my $filter = $filters[$filterid];
 		my $threshold = $filter->{ 'threshold' };
 		my $rateval = $rates->{ $rate } ;
@@ -153,7 +152,7 @@ sub AddRatesInReport
 		if ( $rateval > $threshold )
 		{
 			my $regex = $filter->{ 'regex' };
-			my $msg = "RATEMATCH: VAL:$rateval THR:$threshold VALUE:#$dynval# PATTERN:<<$regex>>\n";
+			my $msg = $now." RATEMATCH: VAL:$rateval THR:$threshold VALUE:#$dynval# PATTERN:<<$regex>>\n";
 			$report = $msg.$report
 		}
 	}
@@ -196,7 +195,7 @@ sub SendReport
 		}
 		else
 		{
-			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
+#			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
 		}
 	}
 	if ( $timessent > 0 )   # keep the report if everyone is on vacation... but we will not send a report even if we are dying...
@@ -291,7 +290,6 @@ sub LoadFilters
 			$filter->{ 'action' } = 'IGNORE' ;
 			$filter->{ 'regex' } = $1 ;
 			push( @filters, $filter );
-#			mylog( "Added $filterline ".Dumper($filter)."\n" );
 			next;
 		}
 
@@ -300,7 +298,6 @@ sub LoadFilters
 			$filter->{ 'action' } = 'ALWAYS' ;
 			$filter->{ 'regex' } = $1 ;
 			push( @filters, $filter );
-#			mylog( "Added $filterline ".Dumper($filter)."\n" );
 			next;
 		}
 
@@ -310,7 +307,6 @@ sub LoadFilters
 			$filter->{ 'regex' } = $2 ;
 			$filter->{ 'threshold' } = $1 ;
 			push( @filters, $filter );
-			mylog( "Added $filterline ".Dumper($filter)."\n" );
 			next;
 		}
 
@@ -324,18 +320,18 @@ sub LoadVacations
 {
 	open (FH, "< $vacationsfile") or die "Can't open $vacationsfile for read: $!";
 	mylog("Loading Vacations\n");
-	$vacations = ();
+	@vacations = ();
 	while ( <FH> )
 	{
 		chomp;
-		next if (! ( /^[a-zA-Z0-9\.\@]+,\d+,\d+,\d+/ ) );
+		
+		my $vacation = ();
 		my @vacdata = split(/,/);
-		my $mail = $vacdata[0];
-		my $vacyear = int $vacdata[1];
-		my $vacmonth = int $vacdata[2];
-		my $vacday = int $vacdata[3];
-		my $vacstring = $mail.":".$vacyear.":".$vacmonth.":".$vacday ;
-		$vacations->{ $vacstring } = "Resting" ;
+		
+		$vacation->{ 'recipientregex' } = $vacdata[0];
+		$vacation->{ 'dateregex' } = $vacdata[1];
+		$vacation->{ 'comment' } = $vacdata[2];
+		push( @vacations, $vacation );
 	}
 	close FH or die "Cannot close $vacationsfile: $!"; 
 }
@@ -343,47 +339,63 @@ sub LoadVacations
 
 sub isNowWorkTime
 {
-### for 24x7 people
-#return 1;
-### for 24x7 people
 	my $recipient = $_[0];
 
 
+#COMMENT below for vacation testing
         my $now = DateTime->now->set_time_zone( 'local' ) ;
-	my $vachashref =  $recipient.":".$now->year().":".$now->month().":".$now->day() ;
 
-	mylog( "recipient is $recipient, vachashref is $vachashref\n" );
+#UNCOMMENT below for vacation testing
+	#my $now = DateTime->new( 
+	#                               'year' => 2018,
+	#                               'month' => 2,
+	#                               'day' => 12
+	#);
 
-	return 0 if ( defined $vacations->{ $vachashref } ) ;
-# testing #      my $now = DateTime->new( year => 2015, month => 12, day => 24, hour => 12, minute => 31 );
+	my $nowstr = $now->dow()."#".$now->ymd('')."#".$now->hms('');
 
-        return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 ); # sat sun
-#DEVONLYCOMMENT#        return 0 if ( ( $now->hour() < 9) || ( $now->hour() > 18 ) || ( ( $now->hour() == 18) && ( $now->min() >= 30) ) ); # non work hours
+	if ( $eastersupport )
+	{
+		my $weaster = DateTime::Event::Easter->new( easter => 'western' );
+		my $eeaster = DateTime::Event::Easter->new( easter => 'eastern' );
 
-        return 0 if ( $now->mon() == 5 && $now->day() == 1 ); # labour day
-        return 0 if ( $now->mon() == 5 && $now->day() == 9 ); # Schuman day
-        return 0 if ( $now->mon() == 10 && $now->day() == 3 ); # german national holiday
+		my $firstdayofthisyear = DateTime->new( 
+                                        year => $now->year(),
+                                        month => 1,
+                                        day => 1
+                                        );
 
-        return 0 if ( $now->mon() == 12 && ( ($now->day() >= 24) && ($now->day() <= 31) ) ); # xmas extended
-        return 0 if ( $now->mon() == 1 && ( ( $now->day() == 1 ) || ( $now->day() == 2 ) ) ) ; # new year
+		my $weasterthisyear = $weaster->following( $firstdayofthisyear );
+		my $eeasterthisyear = $eeaster->following( $firstdayofthisyear );
 
-        my $maundy_thursday = DateTime::Event::Easter->new( day => -3 );
-        my $holy_friday = DateTime::Event::Easter->new( day => -2 );
-        my $easter_monday = DateTime::Event::Easter->new( day => 1 );
-        my $rosenmontag = DateTime::Event::Easter->new( day => -48 );
-        my $whit_monday = DateTime::Event::Easter->new( day => 50 );
-        my $ascension = DateTime::Event::Easter->new( day => 39 );
-        my $after_ascension = DateTime::Event::Easter->new( day => 40 );
-        my $corpus_christi = DateTime::Event::Easter->new( day => 60 );
+		my $wedelta = $now->delta_days( $weasterthisyear )->delta_days();
+		my $eedelta = $now->delta_days( $eeasterthisyear )->delta_days();
 
-        return 0 if ( $maundy_thursday->is( $now ) );
-        return 0 if ( $holy_friday->is( $now ) );
-        return 0 if ( $easter_monday->is( $now ) );
-        return 0 if ( $rosenmontag->is( $now ) );
-        return 0 if ( $whit_monday->is( $now ) );
-        return 0 if ( $ascension->is( $now ) );
-#        return 0 if ( $after_ascension->is( $now ) );
-        return 0 if ( $corpus_christi->is( $now ) );
+		my $wesign = '+';
+		my $eesign = '+';
 
-        return 1;
+		$wesign = '-' if ( DateTime->compare( $now, $weasterthisyear ) < 0 );
+		$eesign = '-' if ( DateTime->compare( $now, $eeasterthisyear ) < 0 );
+
+		my $wedeltastr = sprintf( "%03d", $wedelta) ;
+		my $eedeltastr = sprintf( "%03d", $eedelta) ;
+
+		$nowstr .= "#WE$wesign$wedeltastr#EE$eesign$eedeltastr";
+	}
+
+	mylog( "recipient is $recipient, now is $nowstr\n" );
+
+	foreach my $vacation ( @vacations )
+	{
+		if ( $recipient =~ /$vacation->{ 'recipientregex' }/i )
+		{
+			if ( $nowstr =~ /$vacation->{ 'dateregex' }/i )
+			{
+				mylog( "Skipping report to $recipient due to #".$vacation->{ 'comment' }."#\n" );
+				return 0;
+			}
+		}
+	}
+
+	return 1;
 }
