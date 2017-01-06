@@ -27,17 +27,17 @@ Action R will just update counters on match and further matching will continue (
 
 eg.
 consider the following logs from a switch:
-{{{
+```
 Jan  6 10:44:04 10.4.2.5 979748: Jan  6 10:44:03.405: %MAB-SW1-5-FAIL: Authentication failed for client (ac57.acc9.9813) on Interface Gi117/2/0/39 AuditSessionID 0A30FE01000062523E6FDEC4
 Jan  6 10:44:29 10.4.2.5 979751: Jan  6 10:44:28.031: %MAB-SW1-5-FAIL: Authentication failed for client (00b3.cd28.36a7) on Interface Gi164/2/0/33 AuditSessionID 0A30FE010000642941CF9DEC
 Jan  6 10:44:32 10.4.2.5 979752: Jan  6 10:44:31.111: %MAB-SW1-5-FAIL: Authentication failed for client (00b3.cd28.36a7) on Interface Gi164/2/0/33 AuditSessionID 0A30FE010000642941CF9DEC
-}}}
+```
 
 if the Filter file contains these lines:
-{{{
+```
 R,3:%MAB-SW1-5-FAIL: Authentication failed for client \(([a-f0-9\.]+)\) on Interface
 I:%MAB-SW1-5-FAIL
-}}}
+```
 
 a message will appear on the report only when the log message with the same mac address appears more than 3 times every ReportEverySecs
 
@@ -46,12 +46,16 @@ Non working time is defined in sub "isNowWorkTime", return 0 for non working tim
 
 eg #1:
 
+```
 return 0 if ( ( $now->hour() < 9) || ( $now->hour() >= 18 ) || ( ( $now->hour() == 18) && ( $now->min() >= 30) ) ); 
+```
 
 defines that mails will not be sent between 18:30 - 09:00
 
 eg #2
+```
 return 0 if ( $now->day_of_week == 6 || $now->day_of_week == 7 );
+```
 
 defines that emails will not be sent during weekends
 
