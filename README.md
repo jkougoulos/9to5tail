@@ -51,7 +51,15 @@ recipientregex,dateregex,comment
 
 Every ReportEverySecs, the script will check the defined vacations using the recipient address and a date string. If a match is found, the report is skipped for the specified recipient.
 
-The date string is typically something like: 5#20170106#174506#WE-100#EE-100 , where:
+The date string has the following format (example for 6th January 2107):
+
+When Easter support is NOT activated: 
+`5#20170106#174506`
+
+When Easter support is activated:
+`5#20170106#174506#WE-100#EE-100`
+
+Below is the explanation of the fields:
 ```
 5 -> day of week (1 is Monday, 7 is Sunday) in this case Friday.
 # -> delimiter
