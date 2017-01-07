@@ -25,7 +25,7 @@ die "no config file given, use --config testlog.yml... " if ( $config eq '' );
 
 
 $SIG{ALRM} = \&HandleAlarm ;
-$SIG{HUP} = \&HandleAlarm ;
+$SIG{HUP} = \&HandleHup ;
 $SIG{TERM} = \&HandleTermination ;
 $SIG{INT} = \&HandleTermination ;
 $SIG{USR1} = \&HandleStats ;
@@ -35,14 +35,16 @@ my $conf = $yaml->[0];
 
 #print Dumper($yaml); die;
 
-my $logfile = $config;
-$logfile =~ s/\.yml$//;
+my $conffile = $config;
+$conffile =~ s/\.yml$//;
 
+my $loglvl = 1;
 my $datafile = $conf->{ 'DataFile' } ;
 my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
 my $vacationsfile = $conf->{ 'Vacations' };
 my $maxreportbytes = $conf->{ 'MaxReportBytes' };
+$loglvl = $conf->{ 'LogLevel' } if ( defined $conf->{ 'LogLevel' } );
 
 our $report = "";
 our $reportevery = $conf->{ 'ReportEverySecs' } ;
@@ -60,33 +62,34 @@ our $msgstomail = 0;
 open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!";
 select MYERROR; $| = 1;
 
-mylog("Initializing, will report every $reportevery seconds\n");
-mylog("Data file is $datafile\n");
-mylog("Filter file is $filtfile\n");
-mylog("Max report is $maxreportbytes bytes \n");
+mylog("Initializing, will report every $reportevery seconds\n",1);
+mylog("Data file is $datafile\n",1);
+mylog("Filter file is $filtfile\n",1);
+mylog("Max report is $maxreportbytes bytes \n",1);
+mylog("Log level is $loglvl\n",1);
 
-mylog("Initializing Filters\n");
+mylog("Initializing Filters\n",1);
 my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
 $filtmodtime = $statdata->mtime ;
-mylog("Filter file mtime is: ".$filtmodtime."\n") ;
+mylog("Filter file mtime is: ".$filtmodtime."\n",1) ;
 LoadFilters();
 
-mylog("Initializing Vacations\n");
+mylog("Initializing Vacations\n",1);
 my $vacstatdata = stat( $vacationsfile ) or die "$vacationsfile does not exist" ;
 $vacationsmodtime = $vacstatdata->mtime ;
-mylog("Vacations file is: ".$vacationsfile."\n") ;
-mylog("Vacations file mtime is: ".$vacationsmodtime."\n") ;
+mylog("Vacations file is: ".$vacationsfile."\n",1) ;
+mylog("Vacations file mtime is: ".$vacationsmodtime."\n",1) ;
 LoadVacations();
 
-mylog("Let's start...\n") ;
+mylog("Let's start...\n",1) ;
 
 if( $eastersupport )
 {
-	mylog("Easter support activated!\n");
+	mylog("Easter support activated!\n",1);
 }
 else
 {
-	mylog("Easter support not available, check your vacation file\n");
+	mylog("Easter support not available, check your vacation file\n",1);
 }
 
 alarm $reportevery;
@@ -101,24 +104,34 @@ while (defined(my $line = $file->read)) {
 	{
 		my $filter = $filters[$i];
 	
-#		print STDERR "TESTING #$filter#..." ;
+#		mylog("TESTING INPUT:  #$line#...",9) ;
+#		mylog("TESTING FILTER: #$filter#...",9) ;
 		my $regex = $filter->{ 'regex' };
 		if ( $line =~ /$regex/ )
 		{	
-#			mylog("Got a Hit in filters!\n") ;
+#			mylog("HIT!\n",9) ;
 			$filterstats->{$regex} += 1;
 
 			my $action = $filter->{ 'action' };
 			if ( $action eq 'IGNORE' || $action eq 'ALWAYS' )
 			{
-				$skip = 1  if( $action eq 'IGNORE' );
+				
+				if( $action eq 'IGNORE' )
+				{
+#					mylog("Action: IGNORE!\n",9) ;
+					$skip = 1;
+				}
+				else
+				{
+#					mylog("Action ALWAYS!\n",9) ;
+				}
 				last;
 			}
 			if ( $action eq 'RATE' )
 			{
 				my $dynval = "$1:$2:$3:$4:$5:$6" ;
 				$dynval =~ s/:+$//g ;
-#				mylog("RATE for <<$regex>> value is #$dynval#\n");
+				mylog("Action RATE for <<$regex>> value is #$dynval#\n",5);
 				my $key = $i.'+'.$dynval ;
 				if ( defined $rates->{ $key } )
 				{
@@ -129,7 +142,7 @@ while (defined(my $line = $file->read)) {
 					$rates->{ $key } = 1;
 				}
 				$skip = 1;
-#				mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n" );
+				mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n",5);
 			}
 		}
 #		mylog("Got a Miss... but we added something in the report\n");
@@ -139,13 +152,15 @@ while (defined(my $line = $file->read)) {
 	$msgstomail++;
 }
 
+exit(0);
+
 sub mylog
 {
         my $msg = $_[0];
-#        my $msgloglvl = $_[1];
-#        if( $loglvl >= $msgloglvl )
+        my $msgloglvl = $_[1];
+        if( $loglvl >= $msgloglvl )
         {
-                print MYERROR localtime()." pid:".$$." tailer ".$logfile.": ".$msg.""
+                print MYERROR localtime()." pid:".$$." tailer ".$conffile.": ".$msg.""
         }
 }
 
@@ -167,6 +182,7 @@ sub AddRatesInReport
 			$report = $msg.$report
 		}
 	}
+	$rates = ();
 }
 
 
@@ -176,19 +192,26 @@ sub SendReport
 	my $subject = "";
 
 
+	AddRatesInReport();
+
+	if ( $report eq "" )
+	{
+#		mylog("Nothing to report!");
+		return;
+	}
+
 	if ( length( $report ) > $maxreportbytes )
 	{
 		$report = substr( $report, 0, $maxreportbytes );
-		$subject = $logfile.' Realtime syslog report TRUNCATED, Check logs!';
+		$subject = $conffile.' Realtime syslog report TRUNCATED, Check logs!';
 	}
 	else
 	{
-		$subject = $logfile.' Realtime syslog report ' ;
+		$subject = $conffile.' Realtime syslog report ' ;
 	}
 	foreach my $recipient ( @toaddresses )
 	{
 
-#		if ( !(defined $vacations->{ $vachashref } ) && isNowWorkTime() )
 		if ( isNowWorkTime( $recipient ) ) 
 		{
 			my $msg = MIME::Lite->new(
@@ -201,11 +224,11 @@ sub SendReport
 			$msg->send;
 			$timessent++;
 			$mailssent++;
-#			mylog("Just sent an email!\n");
+			mylog("Just sent an email to $recipient!\n",3);
 		}
 		else
 		{
-#			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n" );
+			mylog( $recipient." is on vacation... or we don't work now... lets not spam!\n",3);
 		}
 	}
 	if ( $timessent > 0 )   # keep the report if everyone is on vacation... but we will not send a report even if we are dying...
@@ -213,27 +236,14 @@ sub SendReport
 		$report = "";
 		$msgstomail = 0;
 	}
-	$rates = ();
 }
 
-
-sub HandleAlarm
+sub LoadConfig
 {
-	alarm 0;
-#	mylog("Got Alarm!\n") ;
-	AddRatesInReport();
-	if ( $report ne "" )
-	{
-		SendReport();
-	}
-	else
-	{	
-#		mylog("Nothing to report!\n");
-	}
 	my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
 	if ( $statdata->mtime ne $filtmodtime )
 	{
-		mylog("Filters have changed new mtime is ".$statdata->mtime."!\n");
+		mylog("Filters have changed new mtime is ".$statdata->mtime."!\n",1);
 		LoadFilters();
 		$filtmodtime = $statdata->mtime ;
 	}
@@ -241,16 +251,39 @@ sub HandleAlarm
 	my $vacstatdata = stat( $vacationsfile ) or die "$vacationsfile does not exist" ;
 	if ( $vacstatdata->mtime ne $vacationsmodtime )
 	{
-		mylog("Vacations have changed new mtime is ".$vacstatdata->mtime."!\n");
+		mylog("Vacations have changed new mtime is ".$vacstatdata->mtime."!\n",1);
 		LoadVacations();
 		$vacationsmodtime = $vacstatdata->mtime ;
 	}
+}
+
+sub HandleHup
+{
+	alarm 0;
+	mylog("Got Hangup, sending report and reading configuration!\n",1) ;
+
+	SendReport();
+	LoadConfig();
+
+	alarm $reportevery;
+}
+
+sub HandleAlarm
+{
+	alarm 0;
+	mylog("Got Alarm, sending report and reading configuration!\n",9) ;
+
+	SendReport();
+	LoadConfig();
+
 	alarm $reportevery;
 }
 
 sub HandleStats
 {
-	mylog( "Caught SIGUSR1... Dumping filtered messages stats \n" );
+	alarm 0;
+	mylog( "Caught SIGUSR1... Dumping filtered messages stats \n",1);
+
 	my @keys = sort { $filterstats->{$b} <=> $filterstats->{$a} } keys %{$filterstats}; # sort by hash value
 	
 	my $k = 1;
@@ -262,39 +295,44 @@ sub HandleStats
 			last if ( $f->{ 'regex' }  eq $filtspec );
 			$i++;
 		}
-		mylog( "Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> currently in pos:$i rank here:$k\n" );
+		mylog( "Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> currently in pos:$i rank here:$k\n",1);
 		$k++;
 	}
 	foreach my $key ( keys %$rates )
 	{
-		mylog( "RATE key $key has ".$rates->{ $key }." hits\n" );
+		mylog( "RATE key $key has ".$rates->{ $key }." hits\n",1);
 	}
 
-	mylog( "Sent $mailssent emails\n");
-	mylog( "We have $msgstomail messages in buffer to be sent!\n" );
-	mylog( "End of dump!\n" );
+	mylog( "We have sent $mailssent emails\n",1);
+	mylog( "We have $msgstomail messages in buffer to be sent!\n",1);
+	mylog( "End of dump!\n",1);
+
+	alarm $reportevery;
 }
 
 sub HandleTermination
 {
-	alarm(0);
-	mylog("Caught termination ( SIGINT || SIGTERM ) signal!...need to cleanup\n");
-	AddRatesInReport();
-	if ( $report ne "" )
-	{
-		mylog("Sending the final report before terminating!\n");
-		SendReport();
-	}
-	mylog("Let's die peacefully!\n");
+	alarm 0;
+	mylog("Caught termination ( SIGINT || SIGTERM ) signal!...need to cleanup\n",1);
+	mylog("Sending the final report before terminating!\n",1);
+
+	SendReport();
+
+	mylog("Let's die peacefully!\n",1);
 	close MYERROR or die "Cannot close $myerrorlog: $!";;
 	exit(0);
 }
 
+sub re_valid 
+{
+    my $re = eval { qr/$_[0]/ };
+    defined($re) ? 1 : 0 ;
+}
 
 sub LoadFilters 
 {
 	open (FH, "< $filtfile") or die "Can't open $filtfile for read: $!";
-	mylog("Loading Filters\n");
+	mylog("Loading Filters\n",1);
 	@filters = ();
 	while ( <FH> )
 	{
@@ -305,38 +343,62 @@ sub LoadFilters
 		if( $filterline =~ /^I:(.*)$/i )
 		{
 			$filter->{ 'action' } = 'IGNORE' ;
-			$filter->{ 'regex' } = $1 ;
-			push( @filters, $filter );
+			my $regex = $1;
+			if( re_valid($regex) )
+			{
+				$filter->{ 'regex' } = $regex ;
+				push( @filters, $filter );
+			}
+			else
+			{
+				mylog("Ignoring $regex, Not Valid regex\n",2);
+			}
 			next;
 		}
 
 		if( $filterline =~ /^A:(.*)$/i )
 		{
 			$filter->{ 'action' } = 'ALWAYS' ;
-			$filter->{ 'regex' } = $1 ;
-			push( @filters, $filter );
+			my $regex = $1;
+			if( re_valid($regex) )
+			{
+				$filter->{ 'regex' } = $regex ;
+				push( @filters, $filter );
+			}
+			else
+			{
+				mylog("Ignoring $regex, Not Valid regex\n",2);
+			}
 			next;
 		}
 
 		if( $filterline =~ /^R,([0-9]+):(.*)$/i )
 		{
 			$filter->{ 'action' } = 'RATE' ;
-			$filter->{ 'regex' } = $2 ;
 			$filter->{ 'threshold' } = $1 ;
-			push( @filters, $filter );
+			my $regex = $2;
+			if( re_valid($regex) )
+			{
+				$filter->{ 'regex' } = $regex ;
+				push( @filters, $filter );
+			}
+			else
+			{
+				mylog("Ignoring $regex, Not Valid regex\n",2);
+			}
 			next;
 		}
 
-		mylog( "Ignoring $filterline \n" );
+		mylog( "Ignoring $filterline \n",1);
 	}
 	close FH or die "Cannot close $filtfile: $!"; 
-	mylog("Found ".scalar(@filters)." filters\n");
+	mylog("Found ".scalar(@filters)." filters\n",1);
 }
 
 sub LoadVacations 
 {
 	open (FH, "< $vacationsfile") or die "Can't open $vacationsfile for read: $!";
-	mylog("Loading Vacations\n");
+	mylog("Loading Vacations\n",1);
 	@vacations = ();
 	while ( <FH> )
 	{
@@ -400,7 +462,7 @@ sub isNowWorkTime
 		$nowstr .= "#WE$wesign$wedeltastr#EE$eesign$eedeltastr";
 	}
 
-#	mylog( "recipient is $recipient, now is $nowstr\n" );
+	mylog( "recipient is $recipient, now is $nowstr\n",4);
 
 	foreach my $vacation ( @vacations )
 	{
@@ -408,7 +470,7 @@ sub isNowWorkTime
 		{
 			if ( $nowstr =~ /$vacation->{ 'dateregex' }/i )
 			{
-#				mylog( "Skipping report to $recipient due to #".$vacation->{ 'comment' }."#\n" );
+				mylog( "Skipping report to $recipient due to #".$vacation->{ 'comment' }."#\n",4);
 				return 0;
 			}
 		}
