@@ -279,10 +279,10 @@ sub HandleTermination
 {
 	alarm(0);
 	mylog("Caught termination ( SIGINT || SIGTERM ) signal!...need to cleanup\n");
+	AddRatesInReport();
 	if ( $report ne "" )
 	{
 		mylog("Sending the final report before terminating!\n");
-		AddRatesInReport();
 		SendReport();
 	}
 	mylog("Let's die peacefully!\n");
