@@ -105,10 +105,10 @@ Every ReportEverySecs, the script will try to match the recipient and the curren
 The date string has the following format (example for 6th January 2107):
 
 When Easter support is NOT activated: 
-`5#20170106#174506`
+`5#20170106#174506#CW01`
 
 When Easter support is activated:
-`5#20170106#174506#WE-100#EE-100`
+`5#20170106#174506#CW01#WE-100#EE-100`
 
 Below is the explanation of the fields:
 ```
@@ -118,6 +118,9 @@ Below is the explanation of the fields:
 # -> delimiter
 174506 -> time of the day... 17:45:06 
 # -> delimiter. Note: this delimiter and the next charaters can be used only if Easter support is activated, meaning DateTime::Event::Easter is installed in your system
+CW -> Calendar week
+01 -> 1 (first week of the year, could be 01..53)
+# -> delimiter
 WE -> Wester Easter
 -  -> minus (or + for days after Easter. Easter Sunday is WE+000 )
 100 -> 100 days... aka the date of the report is 100 days before western (eg Catholic) Easter. The number of days is always 3 digit (zero pad left).

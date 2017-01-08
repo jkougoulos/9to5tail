@@ -328,10 +328,10 @@ sub HandleStats
 
 	my @keys = sort { $filterstats->{$b} <=> $filterstats->{$a} } keys %{$filterstats}; # sort by hash value
 	
-	my $k = 1;
+	my $k = 0;
 	foreach my $filtspec ( @keys )
 	{
-		my $i = 1;
+		my $i = 0;
 		foreach my $f ( @filters )
 		{
 			last if ( $f->{ 'regex' }  eq $filtspec );
@@ -473,7 +473,8 @@ sub isNowWorkTime
 	#                               'day' => 12
 	#);
 
-	my $nowstr = $now->dow()."#".$now->ymd('')."#".$now->hms('');
+	my $cw = sprintf( "%02d", $now->week_number()) ;
+	my $nowstr = $now->dow()."#".$now->ymd('')."#".$now->hms('').'#CW'.$cw;
 
 	if ( $eastersupport )
 	{
