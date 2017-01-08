@@ -2,13 +2,18 @@
 
 ###please use tag v0.1, master unstable
 
-A simple perl based script that will spam you with logs. It will actually tail -f your log, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an mail every ReportEverySecs with the important stuff during working hours.
+A simple perl based script that will spam you with logs!
+
+It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an mail every ReportEverySecs with the stuff you care about.
+
+Since you don't want to wake up in the middle of the night while somoone else is handling the night shift, you can easily (if you know regular expressions) configure your availability.
 
 ##Configuration file
 Configuration is specified in yaml format (see testlog.yml). You may specify multiple recipients, one log file and one filter file per instance.
 
 ##Filter file
 format:
+```
 I:xxxxxxxxxx
   Ignore the xxxxxxxxx pattern
 
@@ -16,11 +21,14 @@ A:yyyyyyyyyy
   Always include the yyyyyyyy pattern in report
 
 R,n:zzzzzzzzzz(aaa)zzzzz(bbb)
-  Rate calculation: 
+  Rate calculation
+```
+
+Rate calculation works in the following way:
 
 if the pattern specified after ":" occurs more than "n" times per ReportEverySecs, it will be included on the top of next report
 
-if the pattern captures text using "()", the first 6 captured values will be concatenated to create a key that will be used for micro-rate calculation (hahaha I should work in marketing).
+if the pattern captures text using "()", the first 6 captured values will be concatenated to create a key that will be used for (warning, marketing buzzword follows) micro-rate calculation.
 
 Actions A & I operate on a first match basis and subsequent matches will be ignored
 Action R will just update counters on match and further matching will continue (for further R actions, I or A).
@@ -41,15 +49,35 @@ I:%MAB-SW1-5-FAIL
 
 a message will appear on the report only when the log message with the same mac address appears more than 3 times every ReportEverySecs
 
-##Working time definition
-Non working time is defined in through Vacations file
+##Non-Working time definition
+By default, the script assumes that everyone is workaholic, eager to receive emails 24x7.
 
-the format of the  file is the following:
+However, you can change this mindset by configuring the Vacations file.
+
+
+The file should formatted in the following way:
 ```
-recipientregex,dateregex,comment
+recipientregex1,dateregex1,comment1
+recipientregex2,dateregex2,comment2
+.
+.
+.
+recipientregexN,dateregexN,commentN
 ```
 
-Every ReportEverySecs, the script will check the defined vacations using the recipient address and a date string. If a match is found, the report is skipped for the specified recipient.
+Example:
+```
+.*,.#........#2[23], 22:00 - 23:59 sleep time
+.*,.#........#0, 00:00 - 09:59 sleep time
+.*,^[67]#,noone will receive on weekends
+.*,^.#........#19,noone will receive between 19:00-19:59
+.*,^.#....010[12],noone will receive on the first days of new year
+.*,#WE-048, noone will receive on Rosen Montag --- 
+.*,#WE\+039, Ascension Day
+foul,^.#20170516, someone whose email contains the text "foul" will not receive on 16th May 2017
+```
+
+Every ReportEverySecs, the script will try to match the recipient and the current dated against the defined vacations using the recipient email address and a date string. If a match is found, the report is skipped for the specified recipient.
 
 The date string has the following format (example for 6th January 2107):
 
@@ -76,16 +104,10 @@ EE -> Eastern Easter
 100 -> 100 days... aka the date of the report is 100 days before western (eg Orthodox) Easter
 ```
 
-by adjusting the date regex you may define when the recipients should NOT receive the reports.
-eg:
-```
-.*,^[67]#,noone will receive on weekends
-.*,^.#........#19,noone will receive between 19:00-19:59
-.*,^.#....010[12],noone will receive on the first days of new year
-.*,#WE-048, noone will receive on Rosen Montag --- 
-.*,#WE\+039, Ascension Day
-foul,^.#20170516, someone whose email contains the text "foul" will not receive on 16th May 2017
-```
+If no recipient can be reached, the report will be preserved until someone is available.
+
+In the configuration file you can specify also the timezone (see: http://search.cpan.org/dist/DateTime-TimeZone/lib/DateTime/TimeZone/Catalog.pm) of the receivers, or local for the machine timezone. This is useful since nowadays the operations people usually live in the same timezone while VMs have the tendency to spread around the world. If you run "follow-the-sun" operations, you can also set the timezone to UTC and do the calculations.
+
 
 ##Miscellaneous
 Thanks to File::Tail, you don't have to restart when the log file is rotated
@@ -98,6 +120,6 @@ kill -HUP will send pending reports and reread FilterFile / Vacations file
 
 MaxReportBytes defines the maximum size of the report mail. Report will be truncated to get an idea of what is happening but you will have to dig in the logs to see what is the problem.
 
-The FilterFile and Vacations file are checked for changes every ReportEverySecs in order to update the filters and vacations without restarting the script.
+The FilterFile and Vacations file are checked for changes every ReportEverySecs in order to update the filters and vacations without restarting the script. 
 
 Happy log tailing!
