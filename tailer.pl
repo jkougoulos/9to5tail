@@ -3,6 +3,7 @@
 use File::Tail;
 use MIME::Lite;
 use File::stat;
+use File::Basename;
 use Getopt::Long;
 use DateTime;
 use Data::Dumper ;
@@ -11,6 +12,7 @@ use YAML::Tiny;
 use strict;
 
 my $config = '';
+my $maxreadblock = 32;
 
 our $eastersupport = 
 	eval {
@@ -42,6 +44,7 @@ my $loglvl = 1;
 my $vacationstz = 'local';
 
 my $datafile = $conf->{ 'DataFile' } ;
+my @datafiles = @{ $conf->{ 'DataFiles' } } ;
 my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
 my $vacationsfile = $conf->{ 'Vacations' };
@@ -67,7 +70,11 @@ open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!"
 select MYERROR; $| = 1;
 
 mylog("Initializing, will report every $reportevery seconds\n",1);
-mylog("Data file is $datafile\n",1);
+foreach my $filepath ( @datafiles )
+{
+        mylog("Data file is  $filepath\n",1);
+}
+#mylog("Data file is $datafile\n",1);
 mylog("Filter file is $filtfile\n",1);
 mylog("Max report is $maxreportbytes bytes \n",1);
 mylog("Log level is $loglvl\n",1);
@@ -99,9 +106,31 @@ else
 
 alarm $reportevery;
 
-my $file = File::Tail->new( name => $datafile);
+#my $file = File::Tail->new( name => $datafile);
+my @files = ();
 
-while (defined(my $line = $file->read)) {
+foreach my $filepath ( @datafiles )
+{
+        push(@files, File::Tail->new( name => $filepath, nowait => 1 ) );
+}
+
+
+
+#while (defined(my $line = $file->read)) {
+
+while(1)
+{ 
+    (my $nfound,my $timeleft,my @pending)= File::Tail::select(undef,undef,undef,undef,@files);
+
+    foreach my $activefile (@pending)
+    {
+      my $filename = basename( $activefile->{'input'} );
+      my $linesread = 0;
+      while( $linesread < $maxreadblock && ( ( my $line = $activefile->read ) ne "" ) )
+      {
+	$linesread++;
+
+	mylog("TESTING INPUT: LR:$linesread -> $filename : <<$line>>\n",9) ;
 
 	my $skip = 0;
 
@@ -109,7 +138,6 @@ while (defined(my $line = $file->read)) {
 	{
 		my $filter = $filters[$i];
 	
-#		mylog("TESTING INPUT:  #$line#...",9) ;
 #		mylog("TESTING FILTER: #$filter#...",9) ;
 		my $regex = $filter->{ 'regex' };
 		if ( $line =~ /$regex/ )
@@ -146,18 +174,27 @@ while (defined(my $line = $file->read)) {
 				{
 					$rates->{ $key } = 1;
 				}
-				$skip = 1;
 				mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n",5);
 			}
 		}
 #		mylog("Got a Miss... but we added something in the report\n");
 	}
 	next if ( $skip );
-	$report .=  $line;
+	if( $#datafiles > 1 )
+	{
+		$report .=  $filename.':'.$line;
+	}
+	else
+	{
+		$report .= $line;
+	}
 	$msgstomail++;
+      }
+    }
 }
 
 exit(0);
+
 
 sub mylog
 {
