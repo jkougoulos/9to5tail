@@ -4,12 +4,35 @@
 
 A simple perl based script that will spam you with logs!
 
+##Usage
+tailer.pl --config configfile.yml
+
+##A few words
+
 It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an mail every ReportEverySecs with the stuff you care about.
 
 Since you don't want to wake up in the middle of the night while somoone else is handling the night shift, you can easily (if you know regular expressions) configure your availability.
 
 ##Configuration file
-Configuration is specified in yaml format (see testlog.yml). You may specify multiple recipients, one log file and one filter file per instance.
+Configuration is specified in yaml format. You may specify multiple recipients, multiple log files and one filter file per instance.
+
+Example:
+```
+ReportEverySecs: 300
+MaxReportBytes: 256000
+LogLevel: 1
+DataFiles:
+        - /var/log/syslog
+        - /var/log/fail2ban.log
+FilterFile: /var/log/logfilt.testlog
+Vacations: tailer.vacations
+VacationsTZ: Europe/Berlin
+TailerLog: /tmp/tailer.pl.log
+FromAddress: realtime.report@domain.dom
+Recipients:
+        - user1@domain.dom
+        - user2@domain.dom
+```
 
 ##Filter file
 format:
