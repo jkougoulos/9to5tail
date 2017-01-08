@@ -9,7 +9,7 @@ tailer.pl --config configfile.yml
 
 ##A few words
 
-It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an email every ReportEverySecs with the stuff you care about.
+It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an email every ReportEverySecs with the stuff you care about, if any of them occured.
 
 Since you don't want to open your email client every morning and spend half an hour deleting emails, you can easily (if you know regular expressions) configure your and your coworkers' availability so that the reports follow the available person, your sleeping patterns and your vacations.
 
