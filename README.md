@@ -30,7 +30,8 @@ if the pattern specified after ":" occurs more than "n" times per ReportEverySec
 
 if the pattern captures text using "()", the first 6 captured values will be concatenated to create a key that will be used for (warning, marketing buzzword follows) micro-rate calculation.
 
-Actions A & I operate on a first match basis and subsequent matches will be ignored
+Actions A & I operate on a first match basis.
+
 Action R will just update counters on match and further matching will continue (for further R actions, I or A).
 
 eg.
@@ -54,7 +55,6 @@ By default, the script assumes that everyone is workaholic, eager to receive ema
 
 However, you can change this mindset by configuring the Vacations file.
 
-
 The file should formatted in the following way:
 ```
 recipientregex1,dateregex1,comment1
@@ -77,7 +77,7 @@ Example:
 foul,^.#20170516, someone whose email contains the text "foul" will not receive on 16th May 2017
 ```
 
-Every ReportEverySecs, the script will try to match the recipient and the current dated against the defined vacations using the recipient email address and a date string. If a match is found, the report is skipped for the specified recipient.
+Every ReportEverySecs, the script will try to match the recipient and the current date against the defined vacations using the recipient email address and a date string. If a match is found, the report is skipped for the specified recipient.
 
 The date string has the following format (example for 6th January 2107):
 
@@ -96,17 +96,17 @@ Below is the explanation of the fields:
 174506 -> time of the day... 17:45:06 
 # -> delimiter. Note: this delimiter and the next charaters can be used only if Easter support is activated, meaning DateTime::Event::Easter is installed in your system
 WE -> Wester Easter
--  -> minus
+-  -> minus (or + for days after Easter. Easter Sunday is WE+000 )
 100 -> 100 days... aka the date of the report is 100 days before western (eg Catholic) Easter
 # -> delimiter
 EE -> Eastern Easter
--  -> minus
-100 -> 100 days... aka the date of the report is 100 days before western (eg Orthodox) Easter
+-  -> minus (or + for days after Easter. Easter Sunday is EE+000 )
+100 -> 100 days... aka the date of the report is 100 days before eastern (eg Orthodox) Easter
 ```
 
 If no recipient can be reached, the report will be preserved until someone is available.
 
-In the configuration file you can specify also the timezone (see: http://search.cpan.org/dist/DateTime-TimeZone/lib/DateTime/TimeZone/Catalog.pm) of the receivers, or local for the machine timezone. This is useful since nowadays the operations people usually live in the same timezone while VMs have the tendency to spread around the world. If you run "follow-the-sun" operations, you can also set the timezone to UTC and do the calculations.
+In the configuration file you can specify also the timezone (see: http://search.cpan.org/dist/DateTime-TimeZone/lib/DateTime/TimeZone/Catalog.pm) of the receivers, or `local` for the machine timezone. This is useful since nowadays the operations people usually live in the same timezone while VMs have the tendency to spread around the world. If you run "follow-the-sun" operations, you can also set the timezone to UTC and do the calculations.
 
 
 ##Miscellaneous
