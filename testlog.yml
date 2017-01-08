@@ -4,6 +4,8 @@ LogLevel: 1
 DataFile: /var/log/testlog
 FilterFile: /var/log/logfilt.testlog
 Vacations: tailer.vacations
+VacationsTZ: Europe/Berlin
+#VacationsTZ: local
 TailerLog: /tmp/tailer.pl.log
 FromAddress: realtime.report@domain.dom
 Recipients: 

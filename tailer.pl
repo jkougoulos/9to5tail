@@ -39,12 +39,16 @@ my $conffile = $config;
 $conffile =~ s/\.yml$//;
 
 my $loglvl = 1;
+my $vacationstz = 'local';
+
 my $datafile = $conf->{ 'DataFile' } ;
 my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
 my $vacationsfile = $conf->{ 'Vacations' };
 my $maxreportbytes = $conf->{ 'MaxReportBytes' };
+
 $loglvl = $conf->{ 'LogLevel' } if ( defined $conf->{ 'LogLevel' } );
+$vacationstz = $conf->{ 'VacationsTZ' } if ( defined $conf->{ 'VacationsTZ' } );
 
 our $report = "";
 our $reportevery = $conf->{ 'ReportEverySecs' } ;
@@ -79,6 +83,7 @@ my $vacstatdata = stat( $vacationsfile ) or die "$vacationsfile does not exist" 
 $vacationsmodtime = $vacstatdata->mtime ;
 mylog("Vacations file is: ".$vacationsfile."\n",1) ;
 mylog("Vacations file mtime is: ".$vacationsmodtime."\n",1) ;
+mylog("Vacations TimeZone: ".$vacationstz."\n",1) ;
 LoadVacations();
 
 mylog("Let's start...\n",1) ;
@@ -422,7 +427,7 @@ sub isNowWorkTime
 
 
 #COMMENT below for vacation testing
-        my $now = DateTime->now->set_time_zone( 'local' ) ;
+        my $now = DateTime->now->set_time_zone( $vacationstz ) ;
 
 #UNCOMMENT below for vacation testing
 	#my $now = DateTime->new( 
@@ -442,7 +447,7 @@ sub isNowWorkTime
                                         year => $now->year(),
                                         month => 1,
                                         day => 1
-                                        );
+                                        )->set_time_zone( $vacationstz );
 
 		my $weasterthisyear = $weaster->following( $firstdayofthisyear );
 		my $eeasterthisyear = $eeaster->following( $firstdayofthisyear );
