@@ -9,9 +9,9 @@ tailer.pl --config configfile.yml
 
 ##A few words
 
-It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an mail every ReportEverySecs with the stuff you care about.
+It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an email every ReportEverySecs with the stuff you care about.
 
-Since you don't want to wake up in the middle of the night while somoone else is handling the night shift, you can easily (if you know regular expressions) configure your availability.
+Since you don't want to open your email client every morning and spend half an hour deleting emails, you can easily (if you know regular expressions) configure your and your coworkers' availability so that the reports follow the available person, your sleeping patterns and your vacations.
 
 ##Configuration file
 Configuration is specified in yaml format. You may specify multiple recipients, multiple log files and one filter file per instance.
@@ -120,11 +120,11 @@ Below is the explanation of the fields:
 # -> delimiter. Note: this delimiter and the next charaters can be used only if Easter support is activated, meaning DateTime::Event::Easter is installed in your system
 WE -> Wester Easter
 -  -> minus (or + for days after Easter. Easter Sunday is WE+000 )
-100 -> 100 days... aka the date of the report is 100 days before western (eg Catholic) Easter
+100 -> 100 days... aka the date of the report is 100 days before western (eg Catholic) Easter. The number of days is always 3 digit (zero pad left).
 # -> delimiter
 EE -> Eastern Easter
 -  -> minus (or + for days after Easter. Easter Sunday is EE+000 )
-100 -> 100 days... aka the date of the report is 100 days before eastern (eg Orthodox) Easter
+100 -> 100 days... aka the date of the report is 100 days before eastern (eg Orthodox) Easter. The number of days is always a 3 digit (zero pad left).
 ```
 
 If no recipient can be reached, the report will be preserved until someone is available.
