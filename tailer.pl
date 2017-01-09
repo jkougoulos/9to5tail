@@ -26,11 +26,6 @@ GetOptions ('config=s' => \$config );
 die "no config file given, use --config testlog.yml... " if ( $config eq '' );
 
 
-$SIG{ALRM} = \&HandleAlarm ;
-$SIG{HUP} = \&HandleHup ;
-$SIG{TERM} = \&HandleTermination ;
-$SIG{INT} = \&HandleTermination ;
-$SIG{USR1} = \&HandleStats ;
 
 my $yaml = YAML::Tiny->read( $config );
 my $conf = $yaml->[0];
@@ -43,20 +38,19 @@ $conffile =~ s/\.yml$//;
 my $loglvl = 1;
 my $vacationstz = 'local';
 
-my $datafile = $conf->{ 'DataFile' } ;
 my @datafiles = @{ $conf->{ 'DataFiles' } } ;
 my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
 my $vacationsfile = $conf->{ 'Vacations' };
 my $maxreportbytes = $conf->{ 'MaxReportBytes' };
+our $reportevery = $conf->{ 'ReportEverySecs' } ;
+our $fromaddress = $conf->{ 'FromAddress' };
+our @toaddresses = @{ $conf->{ 'Recipients' } } ; 
 
 $loglvl = $conf->{ 'LogLevel' } if ( defined $conf->{ 'LogLevel' } );
 $vacationstz = $conf->{ 'VacationsTZ' } if ( defined $conf->{ 'VacationsTZ' } );
 
 our $report = "";
-our $reportevery = $conf->{ 'ReportEverySecs' } ;
-our $fromaddress = $conf->{ 'FromAddress' };
-our @toaddresses = @{ $conf->{ 'Recipients' } } ; 
 our @filters ;
 our $rates ;
 our $filtmodtime ;
@@ -66,135 +60,155 @@ our $vacationsmodtime ;
 our $mailssent = 0 ;
 our $msgstomail = 0;
 
-open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!";
-select MYERROR; $| = 1;
+my $loadconfig = 0;
+my $sendreport = 0;
 
-mylog("Initializing, will report every $reportevery seconds\n",1);
-foreach my $filepath ( @datafiles )
-{
-        mylog("Data file is  $filepath\n",1);
-}
-#mylog("Data file is $datafile\n",1);
-mylog("Filter file is $filtfile\n",1);
-mylog("Max report is $maxreportbytes bytes \n",1);
-mylog("Log level is $loglvl\n",1);
-
-mylog("Initializing Filters\n",1);
-my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
-$filtmodtime = $statdata->mtime ;
-mylog("Filter file mtime is: ".$filtmodtime."\n",1) ;
-LoadFilters();
-
-mylog("Initializing Vacations\n",1);
-my $vacstatdata = stat( $vacationsfile ) or die "$vacationsfile does not exist" ;
-$vacationsmodtime = $vacstatdata->mtime ;
-mylog("Vacations file is: ".$vacationsfile."\n",1) ;
-mylog("Vacations file mtime is: ".$vacationsmodtime."\n",1) ;
-mylog("Vacations TimeZone: ".$vacationstz."\n",1) ;
-LoadVacations();
-
-mylog("Let's start...\n",1) ;
-
-if( $eastersupport )
-{
-	mylog("Easter support activated!\n",1);
-}
-else
-{
-	mylog("Easter support not available, check your vacation file\n",1);
-}
-
-alarm $reportevery;
-
-#my $file = File::Tail->new( name => $datafile);
 my @files = ();
 
-foreach my $filepath ( @datafiles )
-{
-        push(@files, File::Tail->new( name => $filepath, nowait => 1 ) );
-}
+Initialize();
 
-
-
-#while (defined(my $line = $file->read)) {
-
+alarm $reportevery;
 while(1)
 { 
-    (my $nfound,my $timeleft,my @pending)= File::Tail::select(undef,undef,undef,undef,@files);
-
-    foreach my $activefile (@pending)
-    {
-      my $filename = basename( $activefile->{'input'} );
-      my $linesread = 0;
-      while( $linesread < $maxreadblock && ( ( my $line = $activefile->read ) ne "" ) )
-      {
-	$linesread++;
-
-	mylog("TESTING INPUT: LR:$linesread -> $filename : <<$line>>\n",9) ;
-
-	my $skip = 0;
-
-	foreach my $i (0 .. $#filters )
+	MainLoop();
+	if( $sendreport )
 	{
-		my $filter = $filters[$i];
-	
-#		mylog("TESTING FILTER: #$filter#...",9) ;
-		my $regex = $filter->{ 'regex' };
-		if ( $line =~ /$regex/ )
-		{	
-#			mylog("HIT!\n",9) ;
-			$filterstats->{$regex} += 1;
-
-			my $action = $filter->{ 'action' };
-			if ( $action eq 'IGNORE' || $action eq 'ALWAYS' )
-			{
-				
-				if( $action eq 'IGNORE' )
-				{
-#					mylog("Action: IGNORE!\n",9) ;
-					$skip = 1;
-				}
-				else
-				{
-#					mylog("Action ALWAYS!\n",9) ;
-				}
-				last;
-			}
-			if ( $action eq 'RATE' )
-			{
-				my $dynval = "$1:$2:$3:$4:$5:$6" ;
-				$dynval =~ s/:+$//g ;
-				mylog("Action RATE for <<$regex>> value is #$dynval#\n",5);
-				my $key = $i.'+'.$dynval ;
-				if ( defined $rates->{ $key } )
-				{
-					$rates->{ $key } += 1;
-				}
-				else
-				{
-					$rates->{ $key } = 1;
-				}
-				mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n",5);
-			}
-		}
-#		mylog("Got a Miss... but we added something in the report\n");
+		SendReport();
+		LoadConfig();
+		alarm $reportevery;
 	}
-	next if ( $skip );
-	if( $#datafiles > 1 )
-	{
-		$report .=  $filename.':'.$line;
-	}
-	else
-	{
-		$report .= $line;
-	}
-	$msgstomail++;
-      }
-    }
 }
 
 exit(0);
 
+sub MainLoop
+{
+
+	(my $nfound,my $timeleft,my @pending)= File::Tail::select(undef,undef,undef,undef,@files);
+
+	foreach my $activefile (@pending)
+	{
+		my $filename = basename( $activefile->{'input'} );
+		my $linesread = 0;
+		while( $linesread < $maxreadblock && ( ( my $line = $activefile->read ) ne "" ) )
+		{
+			$linesread++;
+
+			mylog("TESTING INPUT: LR:$linesread -> $filename : <<$line>>\n",9) ;
+
+			my $skip = 0;
+
+			foreach my $i (0 .. $#filters )
+			{
+				my $filter = $filters[$i];
+	
+#				mylog("TESTING FILTER: #$filter#...",9) ;
+				my $regex = $filter->{ 'regex' };
+				if ( $line =~ /$regex/ )
+				{	
+#					mylog("HIT!\n",9) ;
+					$filterstats->{$regex} += 1;
+
+					my $action = $filter->{ 'action' };
+					if ( $action eq 'IGNORE' || $action eq 'ALWAYS' )
+					{
+				
+						if( $action eq 'IGNORE' )
+						{
+#							mylog("Action: IGNORE!\n",9) ;
+							$skip = 1;
+						}
+						else
+						{
+#							mylog("Action ALWAYS!\n",9) ;
+						}
+						last;
+					}
+					if ( $action eq 'RATE' )
+					{
+						my $dynval = "$1:$2:$3:$4:$5:$6" ;
+						$dynval =~ s/:+$//g ;
+						mylog("Action RATE for <<$regex>> value is #$dynval#\n",5);
+						my $key = $i.'+'.$dynval ;
+						if ( defined $rates->{ $key } )
+						{
+							$rates->{ $key } += 1;
+						}
+						else
+						{
+							$rates->{ $key } = 1;
+						}
+						mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n",5);
+					}
+				}
+#				mylog("Got a Miss... but we added something in the report\n");
+			}
+			next if ( $skip );
+			if( $#datafiles > 1 )
+			{
+				$report .=  $filename.':'.$line;
+			}
+			else
+			{
+				$report .= $line;
+			}
+			$msgstomail++;
+		}
+	}
+}
+
+sub Initialize
+{
+	open ( MYERROR,  ">> $myerrorlog") or die "Can't open $myerrorlog for write: $!";
+	select MYERROR; $| = 1;
+
+	mylog("Initializing, will report every $reportevery seconds\n",1);
+	foreach my $filepath ( @datafiles )
+	{
+        	mylog("Data file is  $filepath\n",1);
+	}
+	mylog("Filter file is $filtfile\n",1);
+	mylog("Max report is $maxreportbytes bytes \n",1);
+	mylog("Log level is $loglvl\n",1);
+
+	mylog("Initializing Filters\n",1);
+	my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
+	$filtmodtime = $statdata->mtime ;
+	mylog("Filter file mtime is: ".$filtmodtime."\n",1) ;
+	LoadFilters();
+
+	mylog("Initializing Vacations\n",1);
+	my $vacstatdata = stat( $vacationsfile ) or die "$vacationsfile does not exist" ;
+	$vacationsmodtime = $vacstatdata->mtime ;
+	mylog("Vacations file is: ".$vacationsfile."\n",1) ;
+	mylog("Vacations file mtime is: ".$vacationsmodtime."\n",1) ;
+	mylog("Vacations TimeZone: ".$vacationstz."\n",1) ;
+	LoadVacations();
+
+	mylog("Let's start...\n",1) ;
+
+	if( $eastersupport )
+	{
+		mylog("Easter support activated!\n",1);
+	}
+	else
+	{
+		mylog("Easter support not available, check your vacation file\n",1);
+	}
+
+
+	foreach my $filepath ( @datafiles )
+	{
+       		push(@files, File::Tail->new( name => $filepath, nowait => 1 ) );
+	}
+
+	$SIG{ALRM} = \&HandleAlarm ;
+	$SIG{HUP} = \&HandleHup ;
+	$SIG{TERM} = \&HandleTermination ;
+	$SIG{INT} = \&HandleTermination ;
+	$SIG{USR1} = \&HandleStats ;
+
+}
 
 sub mylog
 {
@@ -233,12 +247,15 @@ sub SendReport
 	my $timessent = 0 ;
 	my $subject = "";
 
+	$sendreport = 0;
+
+#	mylog("SendReport!\n",1);
 
 	AddRatesInReport();
 
 	if ( $report eq "" )
 	{
-#		mylog("Nothing to report!");
+		mylog("Nothing to report!\n",4);
 		return;
 	}
 
@@ -297,6 +314,7 @@ sub LoadConfig
 		LoadVacations();
 		$vacationsmodtime = $vacstatdata->mtime ;
 	}
+	$loadconfig = 0;
 }
 
 sub HandleHup
@@ -304,26 +322,21 @@ sub HandleHup
 	alarm 0;
 	mylog("Got Hangup, sending report and reading configuration!\n",1) ;
 
-	SendReport();
-	LoadConfig();
-
-	alarm $reportevery;
+	$sendreport = 1;
+	$loadconfig = 1;
 }
 
 sub HandleAlarm
 {
-	alarm 0;
 	mylog("Got Alarm, sending report and reading configuration!\n",9) ;
 
-	SendReport();
-	LoadConfig();
-
-	alarm $reportevery;
+	$sendreport = 1;
+	$loadconfig = 1;
 }
 
 sub HandleStats
 {
-	alarm 0;
+	my $oldalarm = alarm(0);
 	mylog( "Caught SIGUSR1... Dumping filtered messages stats \n",1);
 
 	my @keys = sort { $filterstats->{$b} <=> $filterstats->{$a} } keys %{$filterstats}; # sort by hash value
@@ -349,7 +362,7 @@ sub HandleStats
 	mylog( "We have $msgstomail messages in buffer to be sent!\n",1);
 	mylog( "End of dump!\n",1);
 
-	alarm $reportevery;
+	alarm $oldalarm;
 }
 
 sub HandleTermination
@@ -393,7 +406,7 @@ sub LoadFilters
 			}
 			else
 			{
-				mylog("Ignoring $regex, Not Valid regex\n",2);
+				mylog("Ignoring <<$regex>>, Not Valid regex\n",2);
 			}
 			next;
 		}
@@ -409,7 +422,7 @@ sub LoadFilters
 			}
 			else
 			{
-				mylog("Ignoring $regex, Not Valid regex\n",2);
+				mylog("Ignoring <<$regex>>, Not Valid regex\n",2);
 			}
 			next;
 		}
@@ -426,12 +439,12 @@ sub LoadFilters
 			}
 			else
 			{
-				mylog("Ignoring $regex, Not Valid regex\n",2);
+				mylog("Ignoring <<$regex>>, Not Valid regex\n",2);
 			}
 			next;
 		}
 
-		mylog( "Ignoring $filterline \n",1);
+		mylog( "Ignoring <<$filterline>>\n",1);
 	}
 	close FH or die "Cannot close $filtfile: $!"; 
 	mylog("Found ".scalar(@filters)." filters\n",1);
