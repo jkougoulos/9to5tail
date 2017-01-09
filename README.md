@@ -38,13 +38,22 @@ Recipients:
 format:
 ```
 I:xxxxxxxxxx
-  Ignore the xxxxxxxxx pattern
+  Ignore the xxxxxxxxx pattern (case insensitive)
+
+i:xxxxxxxxxx
+  Ignore the xxxxxxxxx pattern (case sensitive)
 
 A:yyyyyyyyyy
-  Always include the yyyyyyyy pattern in report
+  Always include the yyyyyyyy pattern in report (case insensitive)
+
+a:yyyyyyyyyy
+  Always include the yyyyyyyy pattern in report (case sensitive)
 
 R,n:zzzzzzzzzz(aaa)zzzzz(bbb)
-  Rate calculation
+  Rate calculation (case insensitive)
+
+r,n:zzzzzzzzzz(aaa)zzzzz(bbb)
+  Rate calculation (case sensitive)
 ```
 
 Rate calculation works in the following way:

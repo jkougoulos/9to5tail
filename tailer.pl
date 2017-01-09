@@ -104,7 +104,17 @@ sub MainLoop
 	
 #				mylog("TESTING FILTER: #$filter#...",9) ;
 				my $regex = $filter->{ 'regex' };
-				if ( $line =~ /$regex/ )
+				my $casesens = $filter->{ 'casesensitive' };
+				my $match = 0;
+				if ( $casesens )
+				{
+					$match = 1 if ( $line =~ /$regex/ );
+				}
+				else
+				{
+					$match = 1 if ( $line =~ /$regex/i );
+				}
+				if ( $match )
 				{	
 #					mylog("HIT!\n",9) ;
 					$filterstats->{$regex} += 1;
@@ -128,6 +138,10 @@ sub MainLoop
 					{
 						my $dynval = "$1:$2:$3:$4:$5:$6" ;
 						$dynval =~ s/:+$//g ;
+						if( $casesens )
+						{
+							$dynval = uc($dynval);
+						}
 						mylog("Action RATE for <<$regex>> value is #$dynval#\n",5);
 						my $key = $i.'+'.$dynval ;
 						if ( defined $rates->{ $key } )
@@ -399,6 +413,16 @@ sub LoadFilters
 		{
 			$filter->{ 'action' } = 'IGNORE' ;
 			my $regex = $1;
+
+			if ( $filterline =~ /^i:/ )
+			{
+				$filter->{ 'casesensitive' } = 1;
+			}
+			else
+			{
+				$filter->{ 'casesensitive' } = 0;
+			}
+			
 			if( re_valid($regex) )
 			{
 				$filter->{ 'regex' } = $regex ;
@@ -415,6 +439,16 @@ sub LoadFilters
 		{
 			$filter->{ 'action' } = 'ALWAYS' ;
 			my $regex = $1;
+
+			if ( $filterline =~ /^a:/ )
+			{
+				$filter->{ 'casesensitive' } = 1;
+			}
+			else
+			{
+				$filter->{ 'casesensitive' } = 0;
+			}
+			
 			if( re_valid($regex) )
 			{
 				$filter->{ 'regex' } = $regex ;
@@ -432,6 +466,16 @@ sub LoadFilters
 			$filter->{ 'action' } = 'RATE' ;
 			$filter->{ 'threshold' } = $1 ;
 			my $regex = $2;
+
+			if ( $filterline =~ /^r:/ )
+			{
+				$filter->{ 'casesensitive' } = 1;
+			}
+			else
+			{
+				$filter->{ 'casesensitive' } = 0;
+			}
+			
 			if( re_valid($regex) )
 			{
 				$filter->{ 'regex' } = $regex ;
