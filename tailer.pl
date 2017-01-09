@@ -94,7 +94,7 @@ sub MainLoop
 		{
 			$linesread++;
 
-			mylog("TESTING INPUT: LR:$linesread -> $filename : <<$line>>\n",9) ;
+#			mylog("TESTING INPUT: LR:$linesread -> $filename : <<$line>>\n",9) ;
 
 			my $skip = 0;
 
