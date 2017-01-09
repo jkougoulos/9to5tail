@@ -356,14 +356,18 @@ sub DumpStats
 			last if ( $f->{ 'regex' }  eq $filtspec );
 			$i++;
 		}
-		mylog( "Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> currently in pos:$i rank here:$k\n",1);
+		mylog( "Rule: $i Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> Rank here:$k\n",1);
 		$k++;
 	}
-	foreach my $key ( keys %$rates )
+
+	mylog( "\n",1);
+	my @ratekeys = sort { $rates->{$b} <=> $rates->{$a} } keys %{$rates}; # sort by hash value
+	foreach my $key ( @ratekeys )
 	{
 		mylog( "RATE key $key has ".$rates->{ $key }." hits\n",1);
 	}
 
+	mylog( "\n",1);
 	mylog( "We have sent $mailssent emails\n",1);
 	mylog( "We have $msgstomail messages in buffer to be sent!\n",1);
 	mylog( "End of dump!\n",1);
