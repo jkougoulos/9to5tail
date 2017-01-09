@@ -12,7 +12,6 @@ use YAML::Tiny;
 use strict;
 
 my $config = '';
-my $maxreadblock = 32;
 
 my $eastersupport = 
 	eval {
@@ -83,6 +82,7 @@ exit(0);
 
 sub MainLoop
 {
+	my $maxreadblock = 32;
 
 	(my $nfound,my $timeleft,my @pending)= File::Tail::select(undef,undef,undef,undef,@files);
 
