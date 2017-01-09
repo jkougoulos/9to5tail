@@ -14,7 +14,7 @@ use strict;
 my $config = '';
 my $maxreadblock = 32;
 
-our $eastersupport = 
+my $eastersupport = 
 	eval {
 		require DateTime::Event::Easter;
 		DateTime::Event::Easter->import();
@@ -43,22 +43,22 @@ my $myerrorlog = $conf->{ 'TailerLog' };
 my $filtfile = $conf->{ 'FilterFile' };
 my $vacationsfile = $conf->{ 'Vacations' };
 my $maxreportbytes = $conf->{ 'MaxReportBytes' };
-our $reportevery = $conf->{ 'ReportEverySecs' } ;
-our $fromaddress = $conf->{ 'FromAddress' };
-our @toaddresses = @{ $conf->{ 'Recipients' } } ; 
+my $reportevery = $conf->{ 'ReportEverySecs' } ;
+my $fromaddress = $conf->{ 'FromAddress' };
+my @toaddresses = @{ $conf->{ 'Recipients' } } ; 
 
 $loglvl = $conf->{ 'LogLevel' } if ( defined $conf->{ 'LogLevel' } );
 $vacationstz = $conf->{ 'VacationsTZ' } if ( defined $conf->{ 'VacationsTZ' } );
 
-our $report = "";
-our @filters ;
-our $rates ;
-our $filtmodtime ;
-our $filterstats ;
-our @vacations ;
-our $vacationsmodtime ;
-our $mailssent = 0 ;
-our $msgstomail = 0;
+my $report = "";
+my @filters ;
+my $rates ;
+my $filtmodtime ;
+my $filterstats ;
+my @vacations ;
+my $vacationsmodtime ;
+my $mailssent = 0 ;
+my $msgstomail = 0;
 
 my $loadconfig = 0;
 my $sendreport = 0;
@@ -105,54 +105,37 @@ sub MainLoop
 #				mylog("TESTING FILTER: #$filter#...",9) ;
 				my $regex = $filter->{ 'regex' };
 				my $casesens = $filter->{ 'casesensitive' };
-				my $match = 0;
-				if ( $casesens )
-				{
-					$match = 1 if ( $line =~ /$regex/ );
-				}
-				else
-				{
-					$match = 1 if ( $line =~ /$regex/i );
-				}
-				if ( $match )
+
+				if ( $casesens ? ($line =~ /$regex/) : ($line =~ /$regex/i) )
 				{	
 #					mylog("HIT!\n",9) ;
 					$filterstats->{$regex} += 1;
 
 					my $action = $filter->{ 'action' };
-					if ( $action eq 'IGNORE' || $action eq 'ALWAYS' )
+
+					if ( $action eq 'IGNORE' )
 					{
 				
-						if( $action eq 'IGNORE' )
-						{
-#							mylog("Action: IGNORE!\n",9) ;
-							$skip = 1;
-						}
-						else
-						{
-#							mylog("Action ALWAYS!\n",9) ;
-						}
+#						mylog("Action: IGNORE!\n",9) ;
+						$skip = 1;
 						last;
 					}
+
+					if ( $action eq 'ALWAYS' )
+					{
+#						mylog("Action: ALWAYS!\n",9) ;
+						last;
+					}
+
 					if ( $action eq 'RATE' )
 					{
 						my $dynval = "$1:$2:$3:$4:$5:$6" ;
 						$dynval =~ s/:+$//g ;
-						if( $casesens )
-						{
-							$dynval = uc($dynval);
-						}
-						mylog("Action RATE for <<$regex>> value is #$dynval#\n",5);
+						$dynval = uc($dynval) if( !($casesens) );
+
+#						mylog("Action RATE for <<$regex>> value is #$dynval#\n",9);
 						my $key = $i.'+'.$dynval ;
-						if ( defined $rates->{ $key } )
-						{
-							$rates->{ $key } += 1;
-						}
-						else
-						{
-							$rates->{ $key } = 1;
-						}
-						mylog( "RATE for key ".$key." is now ".$rates->{ $key }."\n",5);
+						$rates->{ $key } += 1;
 					}
 				}
 #				mylog("Got a Miss... but we added something in the report\n");
@@ -179,13 +162,13 @@ sub Initialize
 	mylog("Initializing, will report every $reportevery seconds\n",1);
 	foreach my $filepath ( @datafiles )
 	{
-        	mylog("Data file is  $filepath\n",1);
+        	mylog("Data file is: $filepath\n",1);
 	}
-	mylog("Filter file is $filtfile\n",1);
 	mylog("Max report is $maxreportbytes bytes \n",1);
 	mylog("Log level is $loglvl\n",1);
 
 	mylog("Initializing Filters\n",1);
+	mylog("Filter file is $filtfile\n",1);
 	my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
 	$filtmodtime = $statdata->mtime ;
 	mylog("Filter file mtime is: ".$filtmodtime."\n",1) ;
@@ -199,7 +182,6 @@ sub Initialize
 	mylog("Vacations TimeZone: ".$vacationstz."\n",1) ;
 	LoadVacations();
 
-	mylog("Let's start...\n",1) ;
 
 	if( $eastersupport )
 	{
@@ -210,6 +192,7 @@ sub Initialize
 		mylog("Easter support not available, check your vacation file\n",1);
 	}
 
+	mylog("Let's start...\n",1) ;
 
 	foreach my $filepath ( @datafiles )
 	{
@@ -414,7 +397,7 @@ sub LoadFilters
 			$filter->{ 'action' } = 'IGNORE' ;
 			my $regex = $1;
 
-			if ( $filterline =~ /^i:/ )
+			if ( $filterline =~ /^i/ )
 			{
 				$filter->{ 'casesensitive' } = 1;
 			}
@@ -440,7 +423,7 @@ sub LoadFilters
 			$filter->{ 'action' } = 'ALWAYS' ;
 			my $regex = $1;
 
-			if ( $filterline =~ /^a:/ )
+			if ( $filterline =~ /^a/ )
 			{
 				$filter->{ 'casesensitive' } = 1;
 			}
@@ -467,7 +450,7 @@ sub LoadFilters
 			$filter->{ 'threshold' } = $1 ;
 			my $regex = $2;
 
-			if ( $filterline =~ /^r:/ )
+			if ( $filterline =~ /^r/ )
 			{
 				$filter->{ 'casesensitive' } = 1;
 			}
