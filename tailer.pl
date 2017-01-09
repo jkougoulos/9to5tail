@@ -61,6 +61,7 @@ my $msgstomail = 0;
 
 my $loadconfig = 0;
 my $sendreport = 0;
+my $dumpstats = 0;
 
 my @files = ();
 
@@ -70,10 +71,19 @@ alarm $reportevery;
 while(1)
 { 
 	MainLoop();
+	if( $dumpstats )
+	{
+		my $oldalarm = alarm(0);
+		DumpStats();
+		$dumpstats = 0;
+		alarm $oldalarm;
+	}
 	if( $sendreport )
 	{
 		SendReport();
+		$sendreport = 0;
 		LoadConfig();
+		$loadconfig = 0;
 		alarm $reportevery;
 	}
 }
@@ -244,7 +254,6 @@ sub SendReport
 	my $timessent = 0 ;
 	my $subject = "";
 
-	$sendreport = 0;
 
 #	mylog("SendReport!\n",1);
 
@@ -296,6 +305,7 @@ sub SendReport
 
 sub LoadConfig
 {
+	mylog("In LoadConfig\n",5);
 	my $statdata = stat( $filtfile ) or die "$filtfile does not exist" ;
 	if ( $statdata->mtime ne $filtmodtime )
 	{
@@ -311,30 +321,29 @@ sub LoadConfig
 		LoadVacations();
 		$vacationsmodtime = $vacstatdata->mtime ;
 	}
-	$loadconfig = 0;
 }
 
 sub HandleHup
 {
 	alarm 0;
-	mylog("Got Hangup, sending report and reading configuration!\n",1) ;
-
 	$sendreport = 1;
 	$loadconfig = 1;
 }
 
 sub HandleAlarm
 {
-	mylog("Got Alarm, sending report and reading configuration!\n",9) ;
-
 	$sendreport = 1;
 	$loadconfig = 1;
 }
 
 sub HandleStats
 {
-	my $oldalarm = alarm(0);
-	mylog( "Caught SIGUSR1... Dumping filtered messages stats \n",1);
+	$dumpstats = 1;
+}
+
+sub DumpStats
+{
+	mylog( "Dumping filtered messages stats \n",1);
 
 	my @keys = sort { $filterstats->{$b} <=> $filterstats->{$a} } keys %{$filterstats}; # sort by hash value
 	
@@ -358,8 +367,6 @@ sub HandleStats
 	mylog( "We have sent $mailssent emails\n",1);
 	mylog( "We have $msgstomail messages in buffer to be sent!\n",1);
 	mylog( "End of dump!\n",1);
-
-	alarm $oldalarm;
 }
 
 sub HandleTermination
