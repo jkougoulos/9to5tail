@@ -76,6 +76,7 @@ while(1)
 		my $oldalarm = alarm(0);
 		DumpStats();
 		$dumpstats = 0;
+		mylog( "Report generated $oldalarm seconds before sending report!\n",1);
 		alarm $oldalarm;
 	}
 	if( $sendreport )
@@ -343,7 +344,7 @@ sub HandleStats
 
 sub DumpStats
 {
-	mylog( "Dumping filtered messages stats \n",1);
+	mylog( "Dumping filtered messages stats\n",1);
 
 	my @keys = sort { $filterstats->{$b} <=> $filterstats->{$a} } keys %{$filterstats}; # sort by hash value
 	
@@ -356,7 +357,9 @@ sub DumpStats
 			last if ( $f->{ 'regex' }  eq $filtspec );
 			$i++;
 		}
-		mylog( "Rule: $i Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> Rank here:$k\n",1);
+		my $statnums = sprintf("Rule: %4d Hits:%10d Rank: %4d", $i, $filterstats->{ $filtspec }, $k );
+#		mylog( "Rule: $i Hits: ".$filterstats->{ $filtspec }." for <<$filtspec>> Rank here:$k\n",1);
+		mylog( $statnums." <<".$filters[$i]->{'action'}.":$filtspec>>\n",1);
 		$k++;
 	}
 
@@ -364,7 +367,8 @@ sub DumpStats
 	my @ratekeys = sort { $rates->{$b} <=> $rates->{$a} } keys %{$rates}; # sort by hash value
 	foreach my $key ( @ratekeys )
 	{
-		mylog( "RATE key $key has ".$rates->{ $key }." hits\n",1);
+		my $statnums = sprintf( "Hits: %10d", $rates->{ $key } );
+		mylog( "RATE ".$statnums." Key: <<$key>>\n",1);
 	}
 
 	mylog( "\n",1);
@@ -485,7 +489,8 @@ sub LoadFilters
 		mylog( "Ignoring <<$filterline>>\n",1);
 	}
 	close FH or die "Cannot close $filtfile: $!"; 
-	mylog("Found ".scalar(@filters)." filters\n",1);
+	mylog("Found ".scalar(@filters)." filters, resetting statistics\n",1);
+	$filterstats = ();
 }
 
 sub LoadVacations 
