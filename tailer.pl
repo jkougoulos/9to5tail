@@ -58,6 +58,7 @@ my @vacations ;
 my $vacationsmodtime ;
 my $mailssent = 0 ;
 my $msgstomail = 0;
+my $totallinesread = 0;
 
 my $loadconfig = 0;
 my $sendreport = 0;
@@ -76,13 +77,25 @@ while(1)
 		my $oldalarm = alarm(0);
 		DumpStats();
 		$dumpstats = 0;
+		my $linespersecond = 0;
+		if ( $oldalarm ne $reportevery )
+		{
+			$linespersecond = $totallinesread / ( $reportevery - $oldalarm ) ;
+		}
+		else
+		{
+			$linespersecond = $totallinesread / $reportevery  ;
+		}
+
 		mylog( "Report generated $oldalarm seconds before sending report!\n",1);
+		mylog( "Reading $linespersecond lines per second!\n",1);
 		alarm $oldalarm;
 	}
 	if( $sendreport )
 	{
 		SendReport();
 		$sendreport = 0;
+		$totallinesread = 0;
 		LoadConfig();
 		$loadconfig = 0;
 		alarm $reportevery;
@@ -104,12 +117,14 @@ sub MainLoop
 		while( $linesread < $maxreadblock && ( ( my $line = $activefile->read ) ne "" ) )
 		{
 			$linesread++;
+			$totallinesread++;
 
 #			mylog("TESTING INPUT: LR:$linesread -> $filename : <<$line>>\n",9) ;
 
 			my $skip = 0;
+			my $numfilters = $#filters;
 
-			foreach my $i (0 .. $#filters )
+			foreach my $i (0 .. $numfilters )
 			{
 				my $filter = $filters[$i];
 	
