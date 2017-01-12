@@ -1,17 +1,15 @@
 # 9to5tail
 
-###please use tag v0.1, master unstable
-
-A simple perl based script that will spam you with logs!
+A simple perl based script that will spam you with logs, only when you are available!
 
 ##Usage
 tailer.pl --config configfile.yml
 
 ##A few words
 
-It will actually tail -f your logs, ignore the silly things that you don't care about using perl regex specified in FilterFile (like running "egrep -v -f Filterfile DataFile") and will send you an email every ReportEverySecs with the stuff you care about, if any of them occured.
+It will actually tail -f your logs, ignore the silly things that you don't care about using perl regular expressions that you specify in FilterFile and will send you an email every ReportEverySecs with the stuff you care about, if any of them occured.
 
-Since you don't want to open your email client every morning and spend half an hour deleting emails, you can easily (if you know regular expressions) configure your and your coworkers' availability so that the reports follow the available person, your sleeping patterns and your vacations.
+Since you don't want to open your email client every morning and spend half an hour reviewing and deleting emails, you can easily (if you know regular expressions) configure your and your coworkers' availability so that the reports follow the available person, your sleeping patterns and your vacations.
 
 ##Configuration file
 Configuration is specified in yaml format. You may specify multiple recipients, multiple log files and one filter file per instance.
@@ -147,7 +145,7 @@ In the configuration file you can specify also the timezone (see: http://search.
 ##Miscellaneous
 Thanks to File::Tail, you don't have to restart when the log file is rotated
 
-kill -SIGUSR1  will dump in the script's log file (TailerLog) the counters for ignored lines, allowing you to optimize the order of the filters and gain some speed.
+kill -SIGUSR1  will dump in the script's log file (TailerLog) the counters for ignored lines, current calculated rates, allowing you to optimize the order of the filters and gain some speed.
 
 kill -SIGTERM will gracefully terminate the process, sending any pending reports.
 
