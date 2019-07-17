@@ -2,7 +2,7 @@
 
 A simple perl based script that will spam you with logs, only when you are available!
 
-##Usage
+## Usage
 tailer.pl --config configfile.yml
 
 ## A few words
