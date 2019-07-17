@@ -155,4 +155,4 @@ MaxReportBytes defines the maximum size of the report mail. Report will be trunc
 
 The FilterFile and Vacations file are checked for changes every ReportEverySecs in order to update the filters and vacations without restarting the script. 
 
-Happy log tailing!
+Happy log  tailing!
