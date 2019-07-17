@@ -32,7 +32,7 @@ Recipients:
         - user2@domain.dom
 ```
 
-##Filter file
+## Filter file
 format:
 ```
 I:xxxxxxxxxx
