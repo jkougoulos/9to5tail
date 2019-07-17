@@ -107,7 +107,7 @@ Example:
 foul,^.#20170516, someone whose email contains the text "foul" will not receive on 16th May 2017
 ```
 
-Every ReportEverySecs, the script will try to match the recipient and the current date against the defined vacations using the recipient email address and a date string. If a match is found, the report is skipped for the specified recipient.
+Every  ReportEverySecs, the script will try to match the recipient and the current date against the defined vacations using the recipient email address and a date string. If a match is found, the report is skipped for the specified recipient.
 
 The date string has the following format (example for 6th January 2107):
 
