@@ -5,7 +5,7 @@ A simple perl based script that will spam you with logs, only when you are avail
 ##Usage
 tailer.pl --config configfile.yml
 
-##A few words
+## A few words
 
 It will actually tail -f your logs, ignore the silly things that you don't care about using perl regular expressions that you specify in FilterFile and will send you an email every ReportEverySecs with the stuff you care about, if any of them occured.
 
