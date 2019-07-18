@@ -150,6 +150,7 @@ sub MainLoop
 					if ( $action eq 'ALWAYS' )
 					{
 #						mylog("Action: ALWAYS!\n",9) ;
+						$line = "A:$i//".$line;
 						last;
 					}
 
@@ -167,15 +168,18 @@ sub MainLoop
 #				mylog("Got a Miss... but we added something in the report\n");
 			}
 			next if ( $skip );
-			if( $#datafiles > 1 )
+			if( length( $report ) <= $maxreportbytes )
 			{
-				$report .=  $filename.':'.$line;
+				if( $#datafiles > 1 )
+				{
+					$report .=  $filename.':'.$line;
+				}
+				else
+				{
+					$report .= $line;
+				}
+				$msgstomail++;
 			}
-			else
-			{
-				$report .= $line;
-			}
-			$msgstomail++;
 		}
 	}
 }
