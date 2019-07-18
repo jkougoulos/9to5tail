@@ -11,7 +11,7 @@ It will actually tail -f your logs, ignore the silly things that you don't care 
 
 Since you don't want to open your email client every morning and spend half an hour reviewing and deleting emails, you can easily (if you know regular expressions) configure your and your coworkers' availability so that the reports follow the available person, your sleeping patterns and your vacations.
 
-## Configuration  file
+## Configuration file
 Configuration is specified in yaml format. You may specify multiple recipients, multiple log files and one filter file per instance.
 
 Example:
@@ -80,7 +80,7 @@ I:%MAB-SW1-5-FAIL
 
 a message will appear on the report only when the log message with the same mac address appears more than 3 times every ReportEverySecs
 
-##Non-Working time definition
+## Non-Working time definition
 By default, the script assumes that everyone is workaholic, eager to receive emails 24x7.
 
 However, you can change this mindset by configuring the Vacations file.
