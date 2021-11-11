@@ -142,7 +142,7 @@ If no recipient can be reached, the report will be preserved until someone is av
 In the configuration file you can specify also the timezone (see: http://search.cpan.org/dist/DateTime-TimeZone/lib/DateTime/TimeZone/Catalog.pm) of the receivers, or `local` for the machine timezone. This is useful since nowadays the operations people usually live in the same timezone while VMs have the tendency to spread around the world. If you run "follow-the-sun" operations, you can also set the timezone to UTC and do the calculations.
 
 
-##Miscellaneous
+## Miscellaneous
 Thanks to File::Tail, you don't have to restart when the log file is rotated
 
 kill -SIGUSR1  will dump in the script's log file (TailerLog) the counters for ignored lines, current calculated rates, allowing you to optimize the order of the filters and gain some speed.
